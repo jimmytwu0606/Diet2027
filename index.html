@@ -62,6 +62,8 @@
   .cart-row:last-child{border-bottom:none}
   .cart-row .nm{flex:1;font-weight:600}
   .cart-row .kc{font-size:12.5px;color:var(--muted)}
+  .weigh{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:14px}
+  .weigh input{width:110px;padding:7px 9px;font-size:15px;border-radius:8px}
   .step{width:38px;height:38px;border-radius:10px;font-size:20px;padding:0;flex:none;
         background:var(--green-lt);color:var(--green);border:none;font-weight:700}
   .qtyv{width:46px;text-align:center;font-weight:700;flex:none;padding:8px 2px}
@@ -158,11 +160,11 @@
 
       <div class="card">
         <h2>找食物</h2>
-        <input v-model="q" placeholder="打名字找，例：花枝丸">
+        <input v-model="q" placeholder="打名字找，可帶克數：白飯100g、花枝丸">
         <div v-if="q.trim()">
           <div class="srch-item" v-for="f in searchHits" :key="f.name">
             <span><b>{{f.name}}</b> <span class="hint">{{f.unit}}・{{f.kcal}}kcal</span></span>
-            <button class="add" @click="tapAdd(f.name)">＋加入</button>
+            <button class="add" @click="tapAdd(f.name, qParsed)">＋加入</button>
           </div>
           <div class="hint" v-if="!searchHits.length" style="padding:8px 0">
             找不到。{{me.mode==='完整'?'可到「食物庫」新增':'請管理者幫忙新增這項食物'}}
@@ -181,10 +183,15 @@
           <div style="flex:1">
             <div class="nm">{{c.name}}</div>
             <div class="kc">{{(c.food.kcal*c.qty).toFixed(0)}} kcal｜{{c.food.unit}}</div>
+            <div class="weigh" v-if="gramsOf(c.food)">
+              ⚖️ <input type="number" inputmode="decimal" :value="c.g"
+                       @input="setGrams(c,$event.target.value)" placeholder="秤重 g">
+              <span class="hint" v-if="c.g">＝ {{c.qty}} 份</span>
+            </div>
           </div>
-          <button class="step" @click="c.qty=Math.max(0.5,Math.round((c.qty-0.5)*10)/10)">−</button>
+          <button class="step" @click="c.g=null;c.qty=Math.max(0.5,Math.round((c.qty-0.5)*10)/10)">−</button>
           <div class="qtyv">{{c.qty}}</div>
-          <button class="step" @click="c.qty=Math.round((c.qty+0.5)*10)/10">＋</button>
+          <button class="step" @click="c.g=null;c.qty=Math.round((c.qty+0.5)*10)/10">＋</button>
           <button class="del" @click="cart.splice(i,1)">✕</button>
         </div>
         <div style="margin:10px 0 4px;font-weight:700">
@@ -261,7 +268,7 @@
 
 <script>
 /* ═══ ① 部署者請填 ═══ */
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzmURK2x_DsakdWukaKrWax94waXwVY8npxoPsxPLEl0GddMmPyJCiHr9EN3M-oQLDd/exec';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzbZg17Y8WZHfJggPWH6B86-Q3D8zSxuNyX5mzrBmQ4DxPNwq3Blgtt-GKgMF6yIE4I/exec';
 
 /* ═══ ② 純 JS 營養分析引擎（與 v1 相同） ═══ */
 const ALIAS = {
@@ -314,7 +321,10 @@ function matchFood(p, foods, fuse){
     const du=parseDbUnit(food.unit);
     if(p.grams!=null&&du.g) qty=p.grams/du.g;
     else if(p.ml!=null&&du.ml) qty=p.ml/du.ml;
-    else if(p.count!=null) qty=p.count/du.count;
+    else if(p.count!=null){
+      if(p.count>=20&&du.g) qty=p.count/du.g;   // 大數字直覺是秤重克數（白飯100 → 100g）
+      else qty=p.count/du.count;
+    }
     qty=Math.round(qty*100)/100;
   }
   return {food, qty, raw:p.name};
@@ -372,12 +382,15 @@ createApp({
         mk('碳水 (g)',t.carb,g.carb,'var(--carb)','limit'),
       ];
     },
+    qParsed(){ return parseToken(this.q.trim()); },
     searchHits(){
       const k=this.q.trim();
       if(!k) return [];
-      const direct=this.foods.filter(f=>f.name.includes(k)||f.category.includes(k));
+      const key=this.qParsed?this.qParsed.name:k;
+      if(!key) return [];
+      const direct=this.foods.filter(f=>f.name.includes(key)||f.category.includes(key));
       if(direct.length) return direct.slice(0,8);
-      return this.fuse? this.fuse.search(k).slice(0,8).map(h=>h.item):[];
+      return this.fuse? this.fuse.search(key).slice(0,8).map(h=>h.item):[];
     },
     cartKcal(){ return this.cart.reduce((s,c)=>s+c.food.kcal*c.qty,0); },
     cartP(){ return this.cart.reduce((s,c)=>s+c.food.protein*c.qty,0); },
@@ -454,14 +467,31 @@ createApp({
       if(!this.meal) this.meal=this.guessMeal();
       try{ const d=await this.api('recent'); this.recent=d.names; }catch(e){}
     },
-    tapAdd(name){
+    gramsOf(f){ return parseDbUnit(f.unit).g; },
+    setGrams(c,v){
+      c.g=v;
+      const g=parseFloat(v), dg=this.gramsOf(c.food);
+      if(g>0&&dg) c.qty=Math.round(g/dg*100)/100;
+    },
+    tapAdd(name, parsed){
       const f=this.foods.find(x=>x.name===name);
       if(!f){ this.toast('食物庫找不到這項'); return; }
+      let qty=1, g=null;
+      if(parsed){
+        const du=parseDbUnit(f.unit);
+        if(parsed.grams!=null&&du.g){ g=parsed.grams; qty=parsed.grams/du.g; }
+        else if(parsed.ml!=null&&du.ml) qty=parsed.ml/du.ml;
+        else if(parsed.count!=null){
+          if(parsed.count>=20&&du.g){ g=parsed.count; qty=parsed.count/du.g; }
+          else qty=parsed.count/du.count;
+        }
+        qty=Math.round(qty*100)/100;
+      }
       const hit=this.cart.find(c=>c.name===name);
-      if(hit) hit.qty=Math.round((hit.qty+1)*10)/10;
-      else this.cart.push({name, qty:1, food:f});
+      if(hit){ hit.qty=Math.round((hit.qty+qty)*100)/100; if(g) hit.g=g; }
+      else this.cart.push({name, qty, food:f, g});
       this.q='';
-      this.toast(`已加入 ${name}`);
+      this.toast(`已加入 ${name}${g?'（'+g+'g）':''}`);
     },
     analyze(){
       if(!this.anaText.trim()) return;
@@ -472,7 +502,7 @@ createApp({
         if(!r.food){ miss++; return; }
         const hit=this.cart.find(c=>c.name===r.food.name);
         if(hit) hit.qty=Math.round((hit.qty+r.qty)*10)/10;
-        else this.cart.push({name:r.food.name, qty:r.qty, food:r.food});
+        else this.cart.push({name:r.food.name, qty:r.qty, food:r.food, g:null});
       });
       this.anaText='';
       this.toast(miss?`已加入 ${items.length-miss} 項，${miss} 項找不到`:'已全部放進清單，確認後送出');
