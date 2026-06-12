@@ -9,76 +9,104 @@
 <style>
   :root{
     --ink:#22251F; --paper:#FFFFFF; --line:#E5E2DA; --muted:#8A8678;
-    --green:#1F4E37; --kcal:#1F4E37; --protein:#B0413E; --fat:#D9921E; --carb:#2D6A9F;
+    --green:#1F4E37; --green-lt:#EAF2ED;
+    --kcal:#1F4E37; --protein:#B0413E; --fat:#D9921E; --carb:#2D6A9F;
     --ok:#1F7A3D; --warn:#C0392B; --bg:#F6F5F1;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{font-family:"Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
-       background:var(--bg);color:var(--ink);font-size:15px;padding-bottom:72px}
-  header{background:var(--green);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
-  header h1{font-size:17px;letter-spacing:1px}
-  header .sub{font-size:12px;opacity:.85}
-  .wrap{max-width:600px;margin:0 auto;padding:12px}
-  .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
-  h2{font-size:14px;margin-bottom:10px;color:var(--green)}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  input,select,textarea,button{font:inherit;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;width:100%}
-  textarea{min-height:90px}
+       background:var(--bg);color:var(--ink);font-size:16px;padding-bottom:76px}
+  header{background:var(--green);color:#fff;padding:14px 16px}
+  header h1{font-size:18px}
+  header .sub{font-size:13px;opacity:.85;margin-top:2px}
+  .wrap{max-width:560px;margin:0 auto;padding:12px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+  h2{font-size:15px;margin-bottom:10px;color:var(--green)}
+  input,select,textarea,button{font:inherit;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff;width:100%}
   button{background:var(--green);color:#fff;border:none;font-weight:700;cursor:pointer}
-  button.ghost{background:#fff;color:var(--green);border:1px solid var(--green)}
-  button.small{width:auto;padding:5px 10px;font-size:13px}
-  button:disabled{opacity:.5}
-  .hint{font-size:12px;color:var(--muted);line-height:1.7}
+  button.ghost{background:#fff;color:var(--green);border:1.5px solid var(--green)}
+  button:disabled{opacity:.45}
+  .hint{font-size:13px;color:var(--muted);line-height:1.7}
   .ok{color:var(--ok)}.warn{color:var(--warn)}
-  /* OKR 進度條 */
-  .okr{margin:13px 0}
-  .okr .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  /* 登入 */
+  .login{min-height:88vh;display:flex;align-items:center;justify-content:center}
+  .login .box{width:90%;max-width:380px;text-align:center}
+  .login .emoji{font-size:64px;margin-bottom:8px}
+  .login h1{font-size:22px;margin-bottom:4px}
+  .login p{color:var(--muted);font-size:14px;margin-bottom:20px}
+  .login input{text-align:center;font-size:18px;letter-spacing:2px;margin-bottom:10px}
+  .login button{font-size:17px;padding:14px}
+  /* OKR */
+  .okr{margin:14px 0}
+  .okr .top{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
   .okr .name{font-weight:700}
-  .okr .num b{font-size:16px}
-  .bar{height:14px;background:#EFEDE7;border-radius:7px;overflow:hidden}
-  .bar .fill{height:100%;border-radius:7px;transition:width .4s}
-  .okr .note{font-size:12px;color:var(--muted);margin-top:4px}
-  /* 紀錄清單 */
-  .entry{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);gap:8px}
+  .okr .num b{font-size:17px}
+  .bar{height:16px;background:#EFEDE7;border-radius:8px;overflow:hidden}
+  .bar .fill{height:100%;border-radius:8px;transition:width .4s}
+  .okr .note{font-size:13px;color:var(--muted);margin-top:5px}
+  /* 紀錄列 */
+  .entry{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line);gap:8px}
   .entry:last-child{border-bottom:none}
   .meal-tag{font-size:11px;color:#fff;background:var(--muted);border-radius:4px;padding:1px 6px;margin-right:6px}
-  .macro{font-size:12px;color:var(--muted)}
-  .del{width:auto;background:none;color:var(--warn);border:none;font-size:18px;padding:2px 6px}
-  /* 分析結果 */
-  .ana{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:#FCFBF8}
-  .ana .raw{font-size:12px;color:var(--muted);margin-bottom:6px}
-  .ana .grid{display:grid;grid-template-columns:1fr 84px;gap:6px}
-  .ana .nums{font-size:12.5px;margin-top:6px}
-  .ana.miss{border-color:var(--warn);background:#FDF4F2}
-  .total-line{font-weight:700;font-size:14px;padding:8px 2px}
-  /* 食物庫 */
-  .foodlist{max-height:48vh;overflow:auto}
-  .f{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;gap:8px}
+  .macro{font-size:12.5px;color:var(--muted)}
+  .del{width:auto;background:none;color:var(--warn);border:none;font-size:20px;padding:2px 8px}
+  /* 點按式記錄 */
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{width:auto;padding:9px 14px;border-radius:20px;background:#fff;color:var(--ink);
+        border:1.5px solid var(--line);font-weight:500;font-size:15px}
+  .chip.meal{background:#fff}
+  .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .srch-item{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px dashed var(--line)}
+  .srch-item .add{width:auto;padding:5px 14px;border-radius:18px;font-size:14px}
+  .cart-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .cart-row:last-child{border-bottom:none}
+  .cart-row .nm{flex:1;font-weight:600}
+  .cart-row .kc{font-size:12.5px;color:var(--muted)}
+  .step{width:38px;height:38px;border-radius:10px;font-size:20px;padding:0;flex:none;
+        background:var(--green-lt);color:var(--green);border:none;font-weight:700}
+  .qtyv{width:46px;text-align:center;font-weight:700;flex:none;padding:8px 2px}
+  .bigbtn{font-size:17px;padding:15px;border-radius:12px}
+  details{margin-top:10px}
+  summary{color:var(--green);font-size:14px;cursor:pointer;padding:6px 0}
+  .ana{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;background:#FCFBF8}
+  .ana .grid{display:grid;grid-template-columns:1fr 80px;gap:6px}
   /* 分頁 */
   nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:5}
-  nav button{flex:1;background:none;color:var(--muted);border:none;border-radius:0;padding:9px 0;font-size:11.5px}
+  nav button{flex:1;background:none;color:var(--muted);border:none;border-radius:0;padding:10px 0;font-size:12px}
   nav button.on{color:var(--green);font-weight:700}
-  nav button span{display:block;font-size:18px}
-  .toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
-         padding:8px 16px;border-radius:20px;font-size:13px;z-index:9;transition:opacity .3s}
+  nav button span{display:block;font-size:20px}
+  .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+         padding:9px 18px;border-radius:22px;font-size:14px;z-index:9;transition:opacity .3s}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+  .foodlist{max-height:46vh;overflow:auto}
+  .f{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13.5px;gap:8px}
+  pre.prompt{white-space:pre-wrap;background:#F2F0EA;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.6}
 </style>
 </head>
 <body>
 <div id="app">
-  <header>
-    <div>
-      <h1>🍱 飲食OKR追蹤</h1>
-      <div class="sub">{{ activeProfile ? '目前方案：'+activeProfile : '尚未連線' }}</div>
-    </div>
-    <select v-if="profiles.length" v-model="profileSel" @change="changeProfile"
-            style="width:auto;font-size:13px;padding:5px 8px">
-      <option v-for="p in profiles" :key="p.name">{{p.name}}</option>
-    </select>
-  </header>
-
   <div class="toast" v-show="toastMsg" :style="{opacity:toastMsg?1:0}">{{toastMsg}}</div>
+
+  <!-- ════ 登入畫面 ════ -->
+  <div class="login" v-if="!me">
+    <div class="box">
+      <div class="emoji">🍱</div>
+      <h1>飲食OKR追蹤</h1>
+      <p>輸入你的密語，開始記錄今天吃了什麼</p>
+      <input v-model="pwInput" type="password" placeholder="密語" @keyup.enter="login" autofocus>
+      <button class="bigbtn" @click="login" :disabled="logging">{{logging?'確認中…':'進入'}}</button>
+      <p class="hint" style="margin-top:14px" v-if="needUrl">
+        （初次架設：請先在 index.html 填 DEFAULT_API_URL，或
+        <a href="#" @click.prevent="askUrl">點此輸入 GAS 網址</a>）
+      </p>
+    </div>
+  </div>
+
+  <template v-else>
+  <header>
+    <h1>嗨，{{me.member}} 👋</h1>
+    <div class="sub">{{headSub}}</div>
+  </header>
 
   <div class="wrap">
 
@@ -87,11 +115,11 @@
       <div class="card">
         <input type="date" v-model="date" @change="loadDay">
         <div v-if="loading" class="hint" style="margin-top:10px">讀取中…</div>
-        <template v-else-if="target">
+        <template v-else-if="me.profile">
           <div class="okr" v-for="b in bars" :key="b.name">
             <div class="top">
               <span class="name">{{b.name}}</span>
-              <span class="num"><b>{{b.val.toFixed(1)}}</b> / {{b.tgtLabel}}</span>
+              <span class="num"><b>{{b.val.toFixed(0)}}</b> / {{b.tgtLabel}}</span>
             </div>
             <div class="bar"><div class="fill" :style="{width:b.pct+'%',background:b.color}"></div></div>
             <div class="note" :class="b.cls">{{b.note}}</div>
@@ -99,8 +127,8 @@
         </template>
       </div>
       <div class="card">
-        <h2>當日紀錄（{{entries.length}} 筆）</h2>
-        <div v-if="!entries.length" class="hint">尚無紀錄，用「🔍 分析」輸入一句話就能記錄</div>
+        <h2>今天的紀錄（{{entries.length}} 筆）</h2>
+        <div v-if="!entries.length" class="hint">還沒有紀錄，到「➕ 記錄」點幾下就好</div>
         <div class="entry" v-for="e in entries" :key="e.row">
           <div>
             <span class="meal-tag">{{e.meal}}</span><b>{{e.name}}</b> ×{{e.qty}}
@@ -111,87 +139,78 @@
       </div>
     </div>
 
-    <!-- ════ 智慧分析（純 JS） ════ -->
-    <div v-show="tab==='ana'">
-      <div class="card">
-        <h2>輸入今天吃了什麼（JS 自動分析）</h2>
-        <textarea v-model="anaText" placeholder="例：茶葉蛋兩顆、無糖豆漿、雞胸肉150g、白飯半碗、花枝丸5顆"></textarea>
-        <div class="row" style="margin-top:8px">
-          <select v-model="anaMeal" style="flex:1">
-            <option>早餐</option><option>午餐</option><option>晚餐</option><option>點心</option>
-          </select>
-          <button style="flex:2" @click="analyze">🔍 分析營養成份</button>
-        </div>
-        <p class="hint" style="margin-top:6px">
-          支援：數字／中文數字／半（2顆、兩顆、半碗）、重量（150g、80克）、容量（300ml），
-          懶得打單位直接「茶葉蛋2」也行。名稱打錯一兩個字也能模糊比對。
-        </p>
-      </div>
-
-      <div class="card" v-if="anaResults.length">
-        <h2>分析結果（可修正後再寫入）</h2>
-        <div v-for="(r,i) in anaResults" :key="i" class="ana" :class="{miss:!r.food}">
-          <div class="raw">「{{r.raw}}」{{r.qtyNote}}</div>
-          <div class="grid">
-            <select v-model="r.foodName" @change="rematch(r)">
-              <option value="">── 找不到，請選擇 ──</option>
-              <option v-for="f in foods" :key="f.name" :value="f.name">{{f.name}}（{{f.unit}}）</option>
-            </select>
-            <input type="number" v-model.number="r.qty" step="0.1" min="0.1" title="份數">
-          </div>
-          <div class="nums" v-if="r.food">
-            ＝ <b>{{(r.food.kcal*r.qty).toFixed(0)}}</b> kcal｜蛋白 {{(r.food.protein*r.qty).toFixed(1)}}g｜
-            脂 {{(r.food.fat*r.qty).toFixed(1)}}g｜碳 {{(r.food.carb*r.qty).toFixed(1)}}g
-            <span class="hint" v-if="r.fuzzy">（模糊比對，請確認）</span>
-          </div>
-          <div class="nums warn" v-else>食物庫沒有這項，請從上方選單挑選，或到「🗂 食物庫」新增</div>
-        </div>
-        <div class="total-line" v-if="anaTotal.kcal">
-          合計：{{anaTotal.kcal.toFixed(0)}} kcal｜蛋白 {{anaTotal.protein.toFixed(1)}}｜脂 {{anaTotal.fat.toFixed(1)}}｜碳 {{anaTotal.carb.toFixed(1)}}
-        </div>
-        <button @click="commitAnalysis" :disabled="!anaResults.some(r=>r.food)">✅ 寫入 {{date}} 的紀錄</button>
-      </div>
-    </div>
-
-    <!-- ════ 手動記錄 ════ -->
+    <!-- ════ 記錄（點按式） ════ -->
     <div v-show="tab==='add'">
       <div class="card">
-        <h2>手動新增</h2>
-        <div style="display:grid;gap:8px">
-          <select v-model="addMeal">
-            <option>早餐</option><option>午餐</option><option>晚餐</option><option>點心</option>
-          </select>
-          <input v-model="addSearch" placeholder="搜尋食物（例：花枝丸）">
-          <select v-model="addFood" size="6">
-            <option v-for="f in filteredAdd" :key="f.name" :value="f.name">{{f.name}}（{{f.unit}}）</option>
-          </select>
-          <div class="row">
-            <label style="width:auto" class="hint">份數</label>
-            <input type="number" v-model.number="addQty" step="0.5" min="0.5" style="flex:1">
-          </div>
-          <div class="hint" v-if="addPreview">{{addPreview}}</div>
-          <button @click="manualAdd">加入紀錄</button>
+        <h2>這是哪一餐？</h2>
+        <div class="chips">
+          <button class="chip meal" :class="{on:meal===m}" v-for="m in ['早餐','午餐','晚餐','點心']"
+                  :key="m" @click="meal=m">{{m}}</button>
         </div>
+      </div>
+
+      <div class="card" v-if="recent.length">
+        <h2>最近吃過（點一下加入）</h2>
+        <div class="chips">
+          <button class="chip" v-for="n in recent" :key="n" @click="tapAdd(n)">{{n}}</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>找食物</h2>
+        <input v-model="q" placeholder="打名字找，例：花枝丸">
+        <div v-if="q.trim()">
+          <div class="srch-item" v-for="f in searchHits" :key="f.name">
+            <span><b>{{f.name}}</b> <span class="hint">{{f.unit}}・{{f.kcal}}kcal</span></span>
+            <button class="add" @click="tapAdd(f.name)">＋加入</button>
+          </div>
+          <div class="hint" v-if="!searchHits.length" style="padding:8px 0">
+            找不到。{{me.mode==='完整'?'可到「食物庫」新增':'請管理者幫忙新增這項食物'}}
+          </div>
+        </div>
+        <details>
+          <summary>✍️ 用打一句話的（例：茶葉蛋2、白飯半碗）</summary>
+          <textarea v-model="anaText" rows="2" placeholder="茶葉蛋2、無糖豆漿1、白飯半碗"></textarea>
+          <button class="ghost" style="margin-top:8px" @click="analyze">分析並放進下面清單</button>
+        </details>
+      </div>
+
+      <div class="card" v-if="cart.length">
+        <h2>準備記錄這些（{{meal}}）</h2>
+        <div class="cart-row" v-for="(c,i) in cart" :key="i">
+          <div style="flex:1">
+            <div class="nm">{{c.name}}</div>
+            <div class="kc">{{(c.food.kcal*c.qty).toFixed(0)}} kcal｜{{c.food.unit}}</div>
+          </div>
+          <button class="step" @click="c.qty=Math.max(0.5,Math.round((c.qty-0.5)*10)/10)">−</button>
+          <div class="qtyv">{{c.qty}}</div>
+          <button class="step" @click="c.qty=Math.round((c.qty+0.5)*10)/10">＋</button>
+          <button class="del" @click="cart.splice(i,1)">✕</button>
+        </div>
+        <div style="margin:10px 0 4px;font-weight:700">
+          合計 {{cartKcal.toFixed(0)}} kcal｜蛋白 {{cartP.toFixed(1)}}g
+        </div>
+        <button class="bigbtn" @click="commit">✅ 記錄這一餐</button>
       </div>
     </div>
 
-    <!-- ════ 食物庫 ════ -->
-    <div v-show="tab==='db'">
+    <!-- ════ 食物庫（完整模式） ════ -->
+    <div v-show="tab==='db'" v-if="me.mode==='完整'">
       <div class="card">
         <h2>食物資料庫（{{foods.length}} 筆）</h2>
         <input v-model="dbSearch" placeholder="搜尋…" style="margin-bottom:8px">
         <div class="foodlist">
           <div class="f" v-for="f in filteredDb" :key="f.name">
             <span><b>{{f.name}}</b> <span class="hint">{{f.unit}}・{{f.category}}</span></span>
-            <span style="white-space:nowrap">{{f.kcal}} kcal｜{{f.protein}}/{{f.fat}}/{{f.carb}}</span>
+            <span style="white-space:nowrap">{{f.kcal}}｜{{f.protein}}/{{f.fat}}/{{f.carb}}</span>
           </div>
         </div>
       </div>
       <div class="card">
         <h2>新增食物</h2>
         <div class="grid2" style="margin-bottom:8px">
-          <input v-model="nf.name" placeholder="名稱（例：蚵仔煎）">
-          <input v-model="nf.unit" placeholder="份量單位（例：1份）">
+          <input v-model="nf.name" placeholder="名稱">
+          <input v-model="nf.unit" placeholder="份量單位(例:1份)">
           <input type="number" v-model.number="nf.kcal" placeholder="熱量 kcal">
           <input type="number" v-model.number="nf.protein" placeholder="蛋白質 g">
           <input type="number" v-model.number="nf.fat" placeholder="脂肪 g">
@@ -200,34 +219,31 @@
         <button @click="addFoodManual">新增到食物庫</button>
       </div>
       <div class="card">
-        <h2>找 AI 估營養 → 貼回 JSON 匯入</h2>
-        <p class="hint" style="margin-bottom:8px">
-          步驟一：輸入食物庫沒有的食物 → 產生 Prompt → 貼到任何 AI 聊天視窗。<br>
-          ※ JSON 是「每一份」的資料，數量（幾塊、幾克）記錄時再到「🔍 分析」輸入即可。
-        </p>
-        <input v-model="promptFood" placeholder="例：豬排、雞蛋豆腐">
+        <h2>AI 估營養 → JSON 匯入</h2>
+        <input v-model="promptFood" placeholder="例：豬排、雞蛋豆腐（可加官方熱量）">
         <button class="ghost" style="margin-top:8px" @click="copyPrompt">📋 產生 Prompt 並複製</button>
-        <pre v-if="promptPreview" style="white-space:pre-wrap;background:#F2F0EA;border:1px solid var(--line);
-             border-radius:8px;padding:10px;font-size:12.5px;line-height:1.6;margin-top:8px">{{promptPreview}}</pre>
-        <p class="hint" style="margin:10px 0 6px">步驟二：把 AI 回傳的 JSON 貼到下方 → 匯入</p>
-        <textarea v-model="jsonText" style="font-family:monospace;font-size:12.5px"
+        <pre class="prompt" v-if="promptPreview" style="margin-top:8px">{{promptPreview}}</pre>
+        <textarea v-model="jsonText" style="font-family:monospace;font-size:13px;margin-top:10px"
           placeholder='[{"name":"煎豬排","unit":"1塊(約150g)","kcal":330,"protein":29,"fat":21,"carb":4,"category":"蛋白質"}]'></textarea>
         <button class="ghost" style="margin-top:8px" @click="importJson">匯入食物庫</button>
       </div>
     </div>
 
-    <!-- ════ 設定 ════ -->
-    <div v-show="tab==='cfg'">
+    <!-- ════ 更多 ════ -->
+    <div v-show="tab==='more'">
       <div class="card">
-        <h2>連線設定（GAS 網址）</h2>
-        <div style="display:grid;gap:8px">
-          <input v-model="cfg.url" placeholder="https://script.google.com/macros/s/…/exec">
-          <input v-model="cfg.token" placeholder="密語（GAS 沒設 API_TOKEN 就留空）">
-          <button @click="saveCfg">儲存並連線</button>
-        </div>
-        <p class="hint" style="margin-top:8px">
-          設定只存在這台裝置的瀏覽器裡。若在 index.html 開頭填好 DEFAULT_API_URL，
-          家人打開網頁就直接能用，不用做任何設定。
+        <h2>我的身分</h2>
+        <p style="margin-bottom:10px">{{me.member}}（{{me.mode}}模式）</p>
+        <button class="ghost" @click="logout">登出 / 換人使用</button>
+      </div>
+      <div class="card" v-if="me.mode==='完整'">
+        <h2>連線設定</h2>
+        <input v-model="cfg.url" placeholder="GAS 網址 https://script.google.com/macros/s/…/exec">
+        <button style="margin-top:8px" @click="saveCfg">儲存</button>
+      </div>
+      <div class="card">
+        <p class="hint">
+          記錄寫進 Google 試算表，每月一張表。目標與成員密語在試算表「目標設定」管理。
         </p>
       </div>
     </div>
@@ -236,29 +252,24 @@
 
   <nav>
     <button :class="{on:tab==='okr'}" @click="tab='okr'"><span>📊</span>今日</button>
-    <button :class="{on:tab==='ana'}" @click="tab='ana'"><span>🔍</span>分析</button>
-    <button :class="{on:tab==='add'}" @click="tab='add'"><span>➕</span>記錄</button>
-    <button :class="{on:tab==='db'}" @click="tab='db'"><span>🗂</span>食物庫</button>
-    <button :class="{on:tab==='cfg'}" @click="tab='cfg'"><span>⚙️</span>設定</button>
+    <button :class="{on:tab==='add'}" @click="tab='add';loadRecent()"><span>➕</span>記錄</button>
+    <button v-if="me.mode==='完整'" :class="{on:tab==='db'}" @click="tab='db'"><span>🗂</span>食物庫</button>
+    <button :class="{on:tab==='more'}" @click="tab='more'"><span>⋯</span>更多</button>
   </nav>
+  </template>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════
- *  ① 部署者請填：GAS 網頁應用程式網址（家人就免設定）
- * ═══════════════════════════════════════════════ */
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzbZg17Y8WZHfJggPWH6B86-Q3D8zSxuNyX5mzrBmQ4DxPNwq3Blgtt-GKgMF6yIE4I/exec';      // 例：'https://script.google.com/macros/s/AKfycb…/exec'
-const DEFAULT_TOKEN   = '';      // GAS 有設 API_TOKEN 才需要
+/* ═══ ① 部署者請填 ═══ */
+const DEFAULT_API_URL = '';   // 例：'https://script.google.com/macros/s/AKfycb…/exec'
 
-/* ═══════════════════════════════════════════════
- *  ② 純 JS 營養分析引擎（無任何外部 API）
- * ═══════════════════════════════════════════════ */
+/* ═══ ② 純 JS 營養分析引擎（與 v1 相同） ═══ */
 const ALIAS = {
   '豆漿':'無糖豆漿','優格':'無糖優格','吐司':'全麥吐司','土司':'全麥吐司',
   '飯':'白飯','糙米':'糙米飯','雞胸':'雞胸肉(熟)','雞胸肉':'雞胸肉(熟)',
   '雞腿':'雞腿(去皮)','蛋':'雞蛋','水煮蛋':'雞蛋','荷包蛋':'雞蛋','滷蛋':'茶葉蛋',
-  '豆腐':'板豆腐','牛奶':'鮮奶','燕麥':'燕麥片','青菜':'燙青菜','地瓜葉':'燙青菜',
-  '堅果':'綜合堅果','番薯':'地瓜','蕃薯':'地瓜','飯糰':'鮪魚飯糰','高蛋白':'乳清蛋白'
+  '豆腐':'板豆腐','牛奶':'鮮奶','燕麥':'燕麥片','青菜':'燙青菜',
+  '堅果':'綜合堅果','番薯':'地瓜','蕃薯':'地瓜','高蛋白':'乳清蛋白'
 };
 const CN = {'半':0.5,'一':1,'二':2,'兩':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
 function cnNum(s){
@@ -274,18 +285,14 @@ const UNITP='(顆|碗|份|個|片|根|茶匙|湯匙|匙|把|包|條|杯|盒|塊|
 const RE_G   = new RegExp(NUMP+'\\s*(?:g|克|公克)','i');
 const RE_ML  = new RegExp(NUMP+'\\s*(?:ml|cc|毫升)','i');
 const RE_CNT = new RegExp(NUMP+'\\s*'+UNITP+'(半)?');
-const RE_TAIL= /(\d+(?:\.\d+)?)\s*$/;   // 茶葉蛋2 → 2份（限阿拉伯數字，避免誤拆「十穀飯」這類名稱）
-const RE_HEAD= /^(\d+(?:\.\d+)?)\s*/;   // 2茶葉蛋 → 2份
-
+const RE_TAIL= /(\d+(?:\.\d+)?)\s*$/;
+const RE_HEAD= /^(\d+(?:\.\d+)?)\s*/;
 function parseDbUnit(u){
   const g  = u.match(/(\d+(?:\.\d+)?)\s*g/i);
   const ml = u.match(/(\d+(?:\.\d+)?)\s*(?:ml|cc)/i);
   const c  = u.match(/^(半|\d+(?:\.\d+)?)/);
-  return { g: g?+g[1]:null, ml: ml?+ml[1]:null,
-           count: c ? (c[1]==='半'?0.5:+c[1]) : 1 };
+  return { g: g?+g[1]:null, ml: ml?+ml[1]:null, count: c?(c[1]==='半'?0.5:+c[1]):1 };
 }
-
-/** 解析單一品項文字 → {name, grams, ml, count} */
 function parseToken(t){
   t=t.trim(); if(!t) return null;
   let grams=null, ml=null, count=null, m;
@@ -297,73 +304,63 @@ function parseToken(t){
   const name=t.replace(/的|了|吃|喝|還有|大約|左右/g,'').replace(/\s+/g,'').trim();
   return name?{name,grams,ml,count}:null;
 }
-
-/** 比對食物庫 + 換算份數 */
-function matchFood(parsed, foods, fuse){
-  let food=null, fuzzy=false;
-  const key=ALIAS[parsed.name]||parsed.name;
+function matchFood(p, foods, fuse){
+  let food=null;
+  const key=ALIAS[p.name]||p.name;
   food=foods.find(f=>f.name===key)||foods.find(f=>f.name.includes(key)||key.includes(f.name));
-  if(!food){
-    const hit=fuse.search(key)[0];
-    if(hit && hit.score<=0.45){ food=hit.item; fuzzy=true; }
-  }
-  let qty=1, qtyNote='';
+  if(!food){ const hit=fuse.search(key)[0]; if(hit&&hit.score<=0.45) food=hit.item; }
+  let qty=1;
   if(food){
     const du=parseDbUnit(food.unit);
-    if(parsed.grams!=null && du.g){ qty=parsed.grams/du.g; qtyNote=`→ ${parsed.grams}g ÷ 每份${du.g}g`; }
-    else if(parsed.ml!=null && du.ml){ qty=parsed.ml/du.ml; qtyNote=`→ ${parsed.ml}ml ÷ 每份${du.ml}ml`; }
-    else if(parsed.count!=null){ qty=parsed.count/du.count; qtyNote=`→ ${parsed.count} ÷ 每份${du.count}`; }
-    else qtyNote='→ 未指定數量，以 1 份計';
+    if(p.grams!=null&&du.g) qty=p.grams/du.g;
+    else if(p.ml!=null&&du.ml) qty=p.ml/du.ml;
+    else if(p.count!=null) qty=p.count/du.count;
     qty=Math.round(qty*100)/100;
   }
-  return { raw:parsed.name+(parsed.grams?` ${parsed.grams}g`:parsed.ml?` ${parsed.ml}ml`:parsed.count!=null?` ×${parsed.count}`:''),
-           foodName:food?food.name:'', food, fuzzy, qty, qtyNote };
+  return {food, qty, raw:p.name};
 }
 
-function analyzeText(text, foods, fuse){
-  return text.split(/[、，,;；+＋\n]|(?:\s+和\s*)|(?:\s+跟\s*)|(?:\s{2,})/)
-    .map(parseToken).filter(Boolean)
-    .map(p=>matchFood(p, foods, fuse));
-}
-
-/* ═══════════════════════════════════════════════
- *  ③ Vue 應用
- * ═══════════════════════════════════════════════ */
+/* ═══ ③ Vue 應用 ═══ */
 const { createApp } = Vue;
 createApp({
   data(){
     return {
-      tab:'okr', toastMsg:'', loading:false,
-      cfg:{ url: localStorage.getItem('okr_url') || DEFAULT_API_URL,
-            token: localStorage.getItem('okr_token') || DEFAULT_TOKEN },
-      foods:[], profiles:[], activeProfile:'', profileSel:'',
-      date: new Date().toISOString().slice(0,10),
-      entries:[], target:null, fuse:null,
-      anaText:'', anaMeal:'午餐', anaResults:[],
-      addMeal:'午餐', addSearch:'', addFood:'', addQty:1,
+      cfg:{ url: localStorage.getItem('okr_url') || DEFAULT_API_URL },
+      me: JSON.parse(localStorage.getItem('okr_me')||'null'),
+      pwInput:'', logging:false, toastMsg:'', loading:false,
+      tab:'okr', date:new Date().toISOString().slice(0,10),
+      foods:[], fuse:null, entries:[], recent:[],
+      meal:'', q:'', cart:[], anaText:'',
       dbSearch:'', jsonText:'', promptFood:'', promptPreview:'',
       nf:{name:'',unit:'1份',kcal:null,protein:null,fat:null,carb:null},
     };
   },
   computed:{
+    needUrl(){ return !this.cfg.url; },
     totals(){
       return this.entries.reduce((t,e)=>({kcal:t.kcal+e.kcal,protein:t.protein+e.protein,
         fat:t.fat+e.fat,carb:t.carb+e.carb}),{kcal:0,protein:0,fat:0,carb:0});
     },
+    headSub(){
+      if(!this.me||!this.me.profile) return '';
+      const g=this.me.profile, left=Math.max(g.kcalLo-this.totals.kcal,0);
+      return this.totals.kcal>g.kcalHi ? '今天熱量超標了，晚點清淡些 🥗'
+           : left>0 ? `今天還可以吃 ${left.toFixed(0)} kcal` : '今天熱量達標 ✅';
+    },
     bars(){
-      if(!this.target) return [];
-      const t=this.totals, g=this.target;
+      if(!this.me||!this.me.profile) return [];
+      const t=this.totals, g=this.me.profile;
       const mk=(name,val,tgt,color,mode,hi)=>{
         let note='',cls='';
         if(mode==='range'){
-          if(val>hi){note=`超過上限 ${hi}，多了 ${(val-hi).toFixed(0)} kcal`;cls='warn';}
-          else if(val>=tgt){note='✅ 落在目標區間';cls='ok';}
+          if(val>hi){note=`超過上限，多了 ${(val-hi).toFixed(0)} kcal`;cls='warn';}
+          else if(val>=tgt){note='✅ 剛剛好，落在目標區間';cls='ok';}
           else note=`還可以吃 ${(tgt-val).toFixed(0)} kcal`;
         }else if(mode==='higher'){
-          if(val>=tgt){note='✅ 達標';cls='ok';} else note=`還差 ${(tgt-val).toFixed(1)} g`;
+          if(val>=tgt){note='✅ 蛋白質達標，讚';cls='ok';} else note=`再補 ${(tgt-val).toFixed(0)} g 就達標`;
         }else{
-          if(val>tgt){note=`⚠ 超過上限 ${(val-tgt).toFixed(1)} g`;cls='warn';}
-          else {note=`剩餘額度 ${(tgt-val).toFixed(1)} g`;cls='ok';}
+          if(val>tgt){note=`⚠ 超過上限 ${(val-tgt).toFixed(0)} g 了`;cls='warn';}
+          else {note=`額度還剩 ${(tgt-val).toFixed(0)} g`;cls='ok';}
         }
         return {name,val,color,cls,note,pct:Math.min(val/tgt*100,100),
                 tgtLabel:mode==='range'?`${tgt}~${hi}`:tgt};
@@ -375,141 +372,144 @@ createApp({
         mk('碳水 (g)',t.carb,g.carb,'var(--carb)','limit'),
       ];
     },
-    anaTotal(){
-      return this.anaResults.filter(r=>r.food).reduce((t,r)=>({
-        kcal:t.kcal+r.food.kcal*r.qty, protein:t.protein+r.food.protein*r.qty,
-        fat:t.fat+r.food.fat*r.qty, carb:t.carb+r.food.carb*r.qty}),
-        {kcal:0,protein:0,fat:0,carb:0});
+    searchHits(){
+      const k=this.q.trim();
+      if(!k) return [];
+      const direct=this.foods.filter(f=>f.name.includes(k)||f.category.includes(k));
+      if(direct.length) return direct.slice(0,8);
+      return this.fuse? this.fuse.search(k).slice(0,8).map(h=>h.item):[];
     },
-    filteredAdd(){
-      const q=this.addSearch.trim();
-      return q?this.foods.filter(f=>f.name.includes(q)||f.category.includes(q)):this.foods;
-    },
+    cartKcal(){ return this.cart.reduce((s,c)=>s+c.food.kcal*c.qty,0); },
+    cartP(){ return this.cart.reduce((s,c)=>s+c.food.protein*c.qty,0); },
     filteredDb(){
-      const q=this.dbSearch.trim();
-      return q?this.foods.filter(f=>f.name.includes(q)||f.category.includes(q)):this.foods;
-    },
-    addPreview(){
-      const f=this.foods.find(x=>x.name===this.addFood);
-      return f?`${this.addQty} 份 ＝ ${(f.kcal*this.addQty).toFixed(0)} kcal｜蛋白 ${(f.protein*this.addQty).toFixed(1)}｜脂 ${(f.fat*this.addQty).toFixed(1)}｜碳 ${(f.carb*this.addQty).toFixed(1)}`:'';
+      const k=this.dbSearch.trim();
+      return k?this.foods.filter(f=>f.name.includes(k)||f.category.includes(k)):this.foods;
     },
   },
   methods:{
-    toast(m){ this.toastMsg=m; clearTimeout(this._tt); this._tt=setTimeout(()=>this.toastMsg='',2400); },
+    toast(m){ this.toastMsg=m; clearTimeout(this._t); this._t=setTimeout(()=>this.toastMsg='',2400); },
+    guessMeal(){
+      const h=new Date().getHours()+new Date().getMinutes()/60;
+      return h<10.5?'早餐':h<15?'午餐':h<20.5?'晚餐':'點心';
+    },
+    askUrl(){
+      const u=prompt('貼上 GAS 網頁應用程式網址：');
+      if(u){ this.cfg.url=u.trim(); localStorage.setItem('okr_url',this.cfg.url); this.toast('已儲存'); }
+    },
     async api(action, payload={}, post=false){
-      if(!this.cfg.url){ this.tab='cfg'; throw new Error('請先到「設定」填入 GAS 網址'); }
+      if(!this.cfg.url) throw new Error('尚未設定 GAS 網址');
+      const base={action, pw:this.me?this.me.pw:this.pwInput.trim()};
       let res;
       if(post){
-        res=await fetch(this.cfg.url,{method:'POST',
-          body:JSON.stringify({action,token:this.cfg.token,...payload})});
+        res=await fetch(this.cfg.url,{method:'POST',body:JSON.stringify({...base,...payload})});
       }else{
         const u=new URL(this.cfg.url);
-        u.searchParams.set('action',action);
-        if(this.cfg.token) u.searchParams.set('token',this.cfg.token);
-        Object.entries(payload).forEach(([k,v])=>u.searchParams.set(k,v));
+        Object.entries({...base,...payload}).forEach(([k,v])=>u.searchParams.set(k,v));
         res=await fetch(u);
       }
       const j=await res.json();
-      if(!j.ok) throw new Error(j.error||'API 錯誤');
+      if(!j.ok) throw new Error(j.error||'連線錯誤');
       return j.data;
     },
-    rebuildFuse(){
-      const list=this.foods.map(f=>({...f,
-        aliases:Object.keys(ALIAS).filter(k=>ALIAS[k]===f.name)}));
-      this.fuse=new Fuse(list,{keys:['name','aliases','category'],
-        includeScore:true,threshold:0.45,ignoreLocation:true});
+    async login(){
+      if(this.needUrl){ this.askUrl(); if(this.needUrl) return; }
+      this.logging=true;
+      try{
+        const d=await this.api('login');
+        this.me={member:d.member, mode:d.mode, profile:d.profile, pw:this.pwInput.trim()};
+        localStorage.setItem('okr_me', JSON.stringify(this.me));
+        this.pwInput=''; this.meal=this.guessMeal();
+        await this.boot();
+        this.toast(`歡迎回來，${this.me.member}！`);
+      }catch(e){ this.toast(e.message); }
+      this.logging=false;
     },
-    async init(){
-      if(!this.cfg.url){ this.tab='cfg'; return; }
+    logout(){
+      localStorage.removeItem('okr_me'); this.me=null; this.tab='okr';
+      this.entries=[]; this.cart=[]; this.recent=[];
+    },
+    async boot(){
       this.loading=true;
       try{
         const d=await this.api('init');
-        this.foods=d.foods; this.profiles=d.profiles;
-        this.activeProfile=d.activeProfile; this.profileSel=d.activeProfile;
-        this.date=d.today; this.rebuildFuse(); this.applyTarget();
-        await this.loadDay();
-      }catch(e){ this.toast(e.message); }
+        this.foods=d.foods; this.me.profile=d.profile; this.me.mode=d.mode;
+        localStorage.setItem('okr_me', JSON.stringify(this.me));
+        this.fuse=new Fuse(this.foods.map(f=>({...f,
+          aliases:Object.keys(ALIAS).filter(k=>ALIAS[k]===f.name)})),
+          {keys:['name','aliases','category'],includeScore:true,threshold:0.45,ignoreLocation:true});
+        await this.loadDay(); this.loadRecent();
+      }catch(e){
+        this.toast(e.message);
+        if(/密語/.test(e.message)) this.logout();
+      }
       this.loading=false;
-    },
-    applyTarget(){
-      this.target=this.profiles.find(p=>p.name===this.activeProfile)||this.profiles[0]||null;
     },
     async loadDay(){
       this.loading=true;
-      try{
-        const d=await this.api('daily',{date:this.date});
-        this.entries=d.entries; this.activeProfile=d.activeProfile;
-        this.profileSel=d.activeProfile; this.applyTarget();
-      }catch(e){ this.toast(e.message); }
+      try{ const d=await this.api('daily',{date:this.date}); this.entries=d.entries; }
+      catch(e){ this.toast(e.message); }
       this.loading=false;
     },
-    async changeProfile(){
-      try{
-        const d=await this.api('setProfile',{name:this.profileSel},true);
-        this.activeProfile=d.activeProfile; this.profiles=d.profiles;
-        this.applyTarget(); this.toast('已切換方案');
-      }catch(e){ this.toast(e.message); }
+    async loadRecent(){
+      if(!this.meal) this.meal=this.guessMeal();
+      try{ const d=await this.api('recent'); this.recent=d.names; }catch(e){}
+    },
+    tapAdd(name){
+      const f=this.foods.find(x=>x.name===name);
+      if(!f){ this.toast('食物庫找不到這項'); return; }
+      const hit=this.cart.find(c=>c.name===name);
+      if(hit) hit.qty=Math.round((hit.qty+1)*10)/10;
+      else this.cart.push({name, qty:1, food:f});
+      this.q='';
+      this.toast(`已加入 ${name}`);
     },
     analyze(){
-      if(!this.anaText.trim()){ this.toast('請先輸入內容'); return; }
-      if(!this.foods.length){ this.toast('食物庫尚未載入'); return; }
-      this.anaResults=analyzeText(this.anaText,this.foods,this.fuse);
-      if(!this.anaResults.length) this.toast('解析不到任何品項，換個寫法試試');
+      if(!this.anaText.trim()) return;
+      const items=this.anaText.split(/[、，,;；+＋\n]|(?:\s+和\s*)|(?:\s+跟\s*)|(?:\s{2,})/)
+        .map(parseToken).filter(Boolean).map(p=>matchFood(p,this.foods,this.fuse));
+      let miss=0;
+      items.forEach(r=>{
+        if(!r.food){ miss++; return; }
+        const hit=this.cart.find(c=>c.name===r.food.name);
+        if(hit) hit.qty=Math.round((hit.qty+r.qty)*10)/10;
+        else this.cart.push({name:r.food.name, qty:r.qty, food:r.food});
+      });
+      this.anaText='';
+      this.toast(miss?`已加入 ${items.length-miss} 項，${miss} 項找不到`:'已全部放進清單，確認後送出');
     },
-    rematch(r){
-      r.food=this.foods.find(f=>f.name===r.foodName)||null;
-      r.fuzzy=false;
-    },
-    async commitAnalysis(){
-      const items=this.anaResults.filter(r=>r.food)
-        .map(r=>({meal:this.anaMeal,name:r.food.name,qty:r.qty}));
-      if(!items.length){ this.toast('沒有可寫入的項目'); return; }
-      this.toast('寫入中…');
+    async commit(){
+      if(!this.cart.length) return;
+      const items=this.cart.map(c=>({meal:this.meal,name:c.name,qty:c.qty}));
+      this.toast('記錄中…');
       try{
         const d=await this.api('add',{date:this.date,items},true);
-        this.entries=d.entries;
-        this.toast(`已寫入 ${items.length} 筆 ✅`);
-        this.anaText=''; this.anaResults=[]; this.tab='okr';
-      }catch(e){ this.toast(e.message); }
-    },
-    async manualAdd(){
-      if(!this.addFood){ this.toast('請先選擇食物'); return; }
-      this.toast('寫入中…');
-      try{
-        const d=await this.api('add',{date:this.date,
-          items:[{meal:this.addMeal,name:this.addFood,qty:this.addQty}]},true);
-        this.entries=d.entries; this.toast('已加入 ✅');
+        this.entries=d.entries; this.cart=[];
+        this.tab='okr'; this.toast('記錄好了 🎉');
+        this.loadRecent();
       }catch(e){ this.toast(e.message); }
     },
     async delEntry(row){
-      try{
-        const d=await this.api('del',{date:this.date,row},true);
-        this.entries=d.entries; this.toast('已刪除');
-      }catch(e){ this.toast(e.message); }
+      try{ const d=await this.api('del',{date:this.date,row},true); this.entries=d.entries; this.toast('已刪除'); }
+      catch(e){ this.toast(e.message); }
     },
     async addFoodManual(){
       if(!this.nf.name||this.nf.kcal==null){ this.toast('至少填名稱與熱量'); return; }
       try{
         const d=await this.api('importFoods',{items:[this.nf]},true);
-        this.foods=d.foods; this.rebuildFuse();
-        this.toast(`已新增「${this.nf.name}」`);
+        this.foods=d.foods; this.toast(`已新增「${this.nf.name}」`);
         this.nf={name:'',unit:'1份',kcal:null,protein:null,fat:null,carb:null};
       }catch(e){ this.toast(e.message); }
     },
     copyPrompt(){
       const food=this.promptFood.trim()||'（在此填入食物）';
-      const p=
-'你是營養分析助手。請估算下列食物的營養成份，盡量參考台灣衛福部「食品營養成分資料庫」的數值。\n'+
-'每項食物以「一份常見份量」為單位（例：1塊、1碗、1夾約80g、100g），unit 請註明大約克數；自助餐菜色請以「1夾」為單位並把炒油算進去。\n'+
-'注意：name 只放食物名稱本身，不要包含數量；數量我之後會在記錄時自行輸入。\n'+
-'只回傳 JSON 陣列，不要任何說明文字或 markdown 標記：\n'+
-'[{"name":"食物名稱","unit":"份量單位(約Ng)","kcal":0,"protein":0,"fat":0,"carb":0,"category":"分類"}]\n\n'+
-'食物：'+food;
+      const p='你是營養分析助手。請估算下列食物的營養成份，盡量參考台灣衛福部「食品營養成分資料庫」的數值。\n'+
+        '每項食物以「一份常見份量」為單位（例：1塊、1碗、1夾約80g、100g），unit 請註明大約克數；自助餐菜色以「1夾」為單位並把炒油算進去。\n'+
+        '若提供官方熱量，蛋白質×4＋脂肪×9＋碳水×4 必須接近該數字。\n'+
+        'name 只放食物名稱不含數量。只回傳 JSON 陣列，不要任何說明或 markdown：\n'+
+        '[{"name":"食物名稱","unit":"份量單位(約Ng)","kcal":0,"protein":0,"fat":0,"carb":0,"category":"分類"}]\n\n食物：'+food;
       this.promptPreview=p;
       if(navigator.clipboard) navigator.clipboard.writeText(p)
-        .then(()=>this.toast('Prompt 已複製，貼到 AI 聊天視窗'))
-        .catch(()=>this.toast('已產生，請手動長按複製'));
-      else this.toast('已產生，請手動長按複製');
+        .then(()=>this.toast('Prompt 已複製')).catch(()=>this.toast('請手動長按複製'));
     },
     async importJson(){
       let items;
@@ -519,17 +519,19 @@ createApp({
       }catch(e){ this.toast('JSON 格式錯誤'); return; }
       try{
         const d=await this.api('importFoods',{items},true);
-        this.foods=d.foods; this.rebuildFuse(); this.jsonText='';
-        this.toast(`匯入完成：新增 ${d.added} 筆，略過重複 ${d.skipped} 筆`);
+        this.foods=d.foods; this.jsonText='';
+        this.toast(`新增 ${d.added} 筆，略過重複 ${d.skipped} 筆`);
       }catch(e){ this.toast(e.message); }
     },
     saveCfg(){
       localStorage.setItem('okr_url',this.cfg.url.trim());
-      localStorage.setItem('okr_token',this.cfg.token.trim());
-      this.toast('已儲存，連線中…'); this.tab='okr'; this.init();
+      this.toast('已儲存'); this.boot();
     },
   },
-  mounted(){ this.init(); },
+  mounted(){
+    this.meal=this.guessMeal();
+    if(this.me) this.boot();
+  },
 }).mount('#app');
 </script>
 </body>
