@@ -268,7 +268,7 @@
 
 <script>
 /* ═══ ① 部署者請填 ═══ */
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzbZg17Y8WZHfJggPWH6B86-Q3D8zSxuNyX5mzrBmQ4DxPNwq3Blgtt-GKgMF6yIE4I/exec';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzmURK2x_DsakdWukaKrWax94waXwVY8npxoPsxPLEl0GddMmPyJCiHr9EN3M-oQLDd/exec';
 
 /* ═══ ② 純 JS 營養分析引擎（與 v1 相同） ═══ */
 const ALIAS = {
@@ -335,7 +335,7 @@ const { createApp } = Vue;
 createApp({
   data(){
     return {
-      cfg:{ url: localStorage.getItem('okr_url') || DEFAULT_API_URL },
+      cfg:{ url: DEFAULT_API_URL || localStorage.getItem('okr_url') || '' },
       me: JSON.parse(localStorage.getItem('okr_me')||'null'),
       pwInput:'', logging:false, toastMsg:'', loading:false,
       tab:'okr', date:new Date().toISOString().slice(0,10),
