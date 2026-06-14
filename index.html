@@ -6,6 +6,7 @@
 <title>🍱 飲食OKR追蹤</title>
 <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root{
     --ink:#22251F; --paper:#FFFFFF; --line:#E5E2DA; --muted:#8A8678;
@@ -83,6 +84,12 @@
   .foodlist{max-height:46vh;overflow:auto}
   .f{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13.5px;gap:8px}
   pre.prompt{white-space:pre-wrap;background:#F2F0EA;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.6}
+  .bankline{font-size:14px;margin-bottom:4px}
+  .bankbig{font-size:18px;font-weight:700;margin-bottom:14px}
+  .wbars{display:flex;align-items:flex-end;gap:6px;height:120px;border-bottom:1px dashed var(--line);padding-top:4px}
+  .wbar{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+  .wbar-fill{width:70%;border-radius:5px 5px 0 0;min-height:2px;transition:height .4s}
+  .wbar-x{font-size:11px;color:var(--muted);margin-top:4px}
 </style>
 </head>
 <body>
@@ -116,6 +123,11 @@
     <div v-show="tab==='okr'">
       <div class="card">
         <input type="date" v-model="date" @change="loadDay">
+        <div style="margin-top:10px" v-if="me.profile">
+          <span class="chip on" style="cursor:default;font-size:13px">
+            {{me.source==='教練'?'🔒 教練設定目標':'🧮 計算機設定目標'}}
+          </span>
+        </div>
         <div v-if="loading" class="hint" style="margin-top:10px">讀取中…</div>
         <template v-else-if="me.profile">
           <div class="okr" v-for="b in bars" :key="b.name">
@@ -201,6 +213,39 @@
       </div>
     </div>
 
+    <!-- ════ 本週 ════ -->
+    <div v-show="tab==='period'">
+      <div class="card">
+        <h2>📈 週期紀錄</h2>
+        <div class="chips" style="margin-bottom:12px">
+          <button class="chip" :class="{on:pRange==='day'}" @click="setRange('day')">日</button>
+          <button class="chip" :class="{on:pRange==='week'}" @click="setRange('week')">週</button>
+          <button class="chip" :class="{on:pRange==='month'}" @click="setRange('month')">月</button>
+          <button class="chip" :class="{on:pRange==='quarter'}" @click="setRange('quarter')">季</button>
+        </div>
+        <div class="chips" style="margin-bottom:8px">
+          <button class="chip" :class="{on:pSeries==='kcal'}" @click="setSeries('kcal')">熱量</button>
+          <button class="chip" :class="{on:pSeries==='protein'}" @click="setSeries('protein')">蛋白質</button>
+          <button class="chip" :class="{on:pSeries==='fat'}" @click="setSeries('fat')">脂肪</button>
+          <button class="chip" :class="{on:pSeries==='carb'}" @click="setSeries('carb')">碳水</button>
+        </div>
+        <div v-if="!period" class="hint">讀取中…</div>
+        <div v-else style="position:relative;height:280px"><canvas ref="chartCv"></canvas></div>
+        <div v-if="period" class="hint" style="text-align:center;margin-top:6px">
+          綠色虛線帶＝目標區間；曲線出帶＝該期未達標
+        </div>
+      </div>
+      <div class="card" v-if="period">
+        <h2>{{rangeLabel}}平均</h2>
+        <div class="okr" v-for="b in periodBars" :key="b.name">
+          <div class="top"><span class="name">{{b.name}}</span>
+            <span class="num"><b>{{b.val.toFixed(0)}}</b> / {{b.tgt}}</span></div>
+          <div class="bar"><div class="fill" :style="{width:b.pct+'%',background:b.color}"></div></div>
+          <div class="note" :class="b.cls">{{b.note}}</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ════ 食物庫（完整模式） ════ -->
     <div v-show="tab==='db'" v-if="me.mode==='完整'">
       <div class="card">
@@ -236,32 +281,126 @@
       </div>
     </div>
 
-    <!-- ════ 更多 ════ -->
-    <div v-show="tab==='more'">
+    <!-- ════ 我的 ════ -->
+    <div v-show="tab==='me'">
       <div class="card">
-        <h2>我的身分</h2>
-        <p style="margin-bottom:10px">{{me.member}}（{{me.mode}}模式）</p>
+        <h2>👤 我的健康資料</h2>
+        <p class="hint" style="margin-bottom:10px">計算機與教練都用這份基本資料</p>
+        <div class="grid2" style="margin-bottom:8px">
+          <select v-model="calc.sex">
+            <option value="M">男性</option><option value="F">女性</option>
+          </select>
+          <input type="number" v-model.number="calc.age" placeholder="年齡">
+          <input type="number" v-model.number="calc.height" placeholder="身高 cm">
+          <input type="number" v-model.number="calc.weight" placeholder="體重 kg">
+        </div>
+        <input type="number" v-model.number="calc.bodyfat" placeholder="體脂率 %（選填，有填更準）" style="margin-bottom:8px">
+        <select v-model="calc.activity" style="margin-bottom:8px">
+          <option :value="1.2">久坐（幾乎不運動）</option>
+          <option :value="1.375">輕活動（每週運動 1~3 天）</option>
+          <option :value="1.55">中度（每週 3~5 天）</option>
+          <option :value="1.725">高度（每週 6~7 天）</option>
+        </select>
+        <select v-model="calc.goal" style="margin-bottom:10px">
+          <option value="cut">減脂（熱量赤字）</option>
+          <option value="maintain">維持</option>
+          <option value="bulk">增肌（熱量盈餘）</option>
+        </select>
+        <button @click="saveParams">💾 儲存健康資料</button>
+      </div>
+
+      <div class="card">
+        <h2>🎯 我的目標</h2>
+        <div class="chips" style="margin-bottom:14px">
+          <button class="chip" :class="{on:goalTab==='calc'}" @click="goalTab='calc'">🧮 計算機建議</button>
+          <button class="chip" :class="{on:goalTab==='coach'}" @click="goalTab='coach'">🔒 教練/營養師</button>
+        </div>
+
+        <!-- 計算機 tab -->
+        <div v-show="goalTab==='calc'">
+          <button @click="runCalc">計算建議目標（參考）</button>
+          <div v-if="calcResult" style="margin-top:14px">
+            <div class="hint" style="margin-bottom:6px">
+              {{calcResult.method}}｜BMR {{calcResult.bmr}}｜TDEE {{calcResult.tdee}} kcal
+            </div>
+            <table style="width:100%;font-size:13.5px;border-collapse:collapse">
+              <tr style="color:var(--muted);font-size:12px">
+                <td style="padding:6px 4px">項目</td>
+                <td style="padding:6px 4px;text-align:right">建議目標</td>
+              </tr>
+              <tr v-for="row in calcRows" :key="row.k" style="border-top:1px dashed var(--line)">
+                <td style="padding:7px 4px;font-weight:600">{{row.label}}</td>
+                <td style="padding:7px 4px;text-align:right">{{row.low}}</td>
+              </tr>
+            </table>
+            <button style="margin-top:12px" @click="applyCalc()">✅ 套用這組為我的目標</button>
+          </div>
+        </div>
+
+        <!-- 教練 tab -->
+        <div v-show="goalTab==='coach'">
+          <p class="hint" style="margin-bottom:10px">
+            填入<b>你的教練或營養師</b>給的數字，按儲存即成為你的今日目標。這組是權威值。
+          </p>
+          <table style="width:100%;font-size:14px;border-collapse:collapse">
+            <tr><td style="padding:7px 4px">熱量下限 (kcal)</td>
+              <td style="padding:4px"><input type="number" v-model.number="coach.kcalLo" placeholder="例 1500"></td></tr>
+            <tr><td style="padding:7px 4px">熱量上限 (kcal)</td>
+              <td style="padding:4px"><input type="number" v-model.number="coach.kcalHi" placeholder="例 1600"></td></tr>
+            <tr><td style="padding:7px 4px">蛋白質 (g)</td>
+              <td style="padding:4px"><input type="number" v-model.number="coach.protein" placeholder="例 110"></td></tr>
+            <tr><td style="padding:7px 4px">脂肪 (g)</td>
+              <td style="padding:4px"><input type="number" v-model.number="coach.fat" placeholder="例 45"></td></tr>
+            <tr><td style="padding:7px 4px">碳水 (g)</td>
+              <td style="padding:4px"><input type="number" v-model.number="coach.carb" placeholder="例 150"></td></tr>
+          </table>
+          <button style="margin-top:12px" @click="saveCoach(true)">✅ 儲存並套用為今日目標</button>
+          <button class="ghost" style="margin-top:8px" @click="saveCoach(false)">只儲存、暫不套用</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>👤 我的身分</h2>
+        <p style="margin-bottom:6px">{{me.member}}（{{me.mode}}模式）</p>
+        <p class="hint" style="margin-bottom:10px" v-if="me.profile">
+          <span :style="{color:me.source==='教練'?'#7A3C3C':'var(--green)',fontWeight:700}">
+            {{me.source==='教練'?'🔒 教練設定':'🧮 計算機設定'}}
+          </span><br>
+          目前目標：熱量 {{me.profile.kcalLo}}~{{me.profile.kcalHi}}｜蛋白 {{me.profile.protein}}｜脂 {{me.profile.fat}}｜碳 {{me.profile.carb}}
+          
+        </p>
+        <button class="ghost" @click="boot()" style="margin-bottom:8px">🔄 重新讀取目標（改過試算表後按這）</button>
         <button class="ghost" @click="logout">登出 / 換人使用</button>
       </div>
+
+      <details class="card" style="padding:14px">
+        <summary style="font-weight:700;color:var(--green)">📚 計算依據（數據來源）</summary>
+        <div class="hint" style="margin-top:10px;line-height:1.9">
+          <b>基礎代謝 BMR</b>：未填體脂用 Mifflin-St Jeor 公式（1990，臨床最常用）；填體脂改用 Katch-McArdle（除脂體重，運動族群更準）。<br>
+          <b>每日總消耗 TDEE</b>：BMR × 活動係數（久坐1.2／輕1.375／中1.55／高1.725，沿用 Harris-Benedict 標準）。<br>
+          <b>蛋白質 1.6~2.2 g/kg</b>：國際運動營養學會(ISSN)對減脂/增肌族群建議區間。<br>
+          <b>脂肪 0.8~0.9 g/kg</b>：維持荷爾蒙的常見下限。<br>
+          <b>熱量赤字 −450 kcal</b>：對應每週約減 0.5kg（通則，非個人化）。<br>
+          <b>碳循環幅度</b>：高碳日 +120 kcal、碳水 +約70g、脂肪降——碳循環無統一公式，此為參考方向，<b>務必由營養師依訓練量調整</b>。<br>
+          <b>碳水</b>：由熱量守恆反推（總熱量−蛋白×4−脂肪×9）÷4。
+        </div>
+      </details>
+
       <div class="card" v-if="me.mode==='完整'">
         <h2>連線設定</h2>
-        <input v-model="cfg.url" placeholder="GAS 網址 https://script.google.com/macros/s/…/exec">
+        <input v-model="cfg.url" placeholder="GAS 網址">
         <button style="margin-top:8px" @click="saveCfg">儲存</button>
-      </div>
-      <div class="card">
-        <p class="hint">
-          記錄寫進 Google 試算表，每月一張表。目標與成員密語在試算表「目標設定」管理。
-        </p>
       </div>
     </div>
 
   </div>
 
   <nav>
-    <button :class="{on:tab==='okr'}" @click="tab='okr'"><span>📊</span>今日</button>
+    <button :class="{on:tab==='me'}" @click="tab='me'"><span>👤</span>我的</button>
     <button :class="{on:tab==='add'}" @click="tab='add';loadRecent()"><span>➕</span>記錄</button>
+    <button :class="{on:tab==='okr'}" @click="tab='okr'"><span>📊</span>今日</button>
+    <button :class="{on:tab==='period'}" @click="tab='period';loadPeriod()"><span>📈</span>週期</button>
     <button v-if="me.mode==='完整'" :class="{on:tab==='db'}" @click="tab='db'"><span>🗂</span>食物庫</button>
-    <button :class="{on:tab==='more'}" @click="tab='more'"><span>⋯</span>更多</button>
   </nav>
   </template>
 </div>
@@ -340,9 +479,14 @@ createApp({
       pwInput:'', logging:false, toastMsg:'', loading:false,
       tab:'okr', date:new Date().toISOString().slice(0,10),
       foods:[], fuse:null, entries:[], recent:[],
+      cycle:false,
+      period:null, pRange:'day', pSeries:'kcal', chartObj:null,
       meal:'', q:'', cart:[], anaText:'',
       dbSearch:'', jsonText:'', promptFood:'', promptPreview:'',
       nf:{name:'',unit:'1份',kcal:null,protein:null,fat:null,carb:null},
+      calc:{sex:'M',age:null,height:null,weight:null,bodyfat:null,activity:1.375,goal:'cut'},
+      calcResult:null, goalTab:'calc',
+      coach:{kcalLo:null,kcalHi:null,protein:null,fat:null,carb:null},
     };
   },
   computed:{
@@ -394,9 +538,49 @@ createApp({
     },
     cartKcal(){ return this.cart.reduce((s,c)=>s+c.food.kcal*c.qty,0); },
     cartP(){ return this.cart.reduce((s,c)=>s+c.food.protein*c.qty,0); },
+    rangeLabel(){ return {day:'每日',week:'每週',month:'每月',quarter:'每季'}[this.pRange]||''; },
+    periodAvg(){
+      if(!this.period||!this.period.points.length) return null;
+      const p=this.period.points, n=p.length;
+      return { kcal:p.reduce((s,x)=>s+x.kcal,0)/n, protein:p.reduce((s,x)=>s+x.protein,0)/n,
+               fat:p.reduce((s,x)=>s+x.fat,0)/n, carb:p.reduce((s,x)=>s+x.carb,0)/n };
+    },
+    periodBars(){
+      if(!this.period||!this.periodAvg) return [];
+      const a=this.periodAvg, g=this.period.target;
+      const mk=(name,val,tgt,color,mode,hi)=>{
+        let note='',cls='';
+        if(mode==='range'){
+          if(val>hi){note='平均超過上限';cls='warn';}
+          else if(val>=tgt){note='✅ 平均落在區間';cls='ok';}
+          else note=`平均差 ${(tgt-val).toFixed(0)}`;
+        }else if(mode==='higher'){
+          if(val>=tgt){note='✅ 蛋白質達標';cls='ok';} else note=`平均差 ${(tgt-val).toFixed(0)} g`;
+        }else{
+          if(val>tgt){note='平均超上限';cls='warn';} else {note='✅ 控制中';cls='ok';}
+        }
+        return {name,val,color,cls,note,pct:Math.min(val/tgt*100,100),
+          tgt:mode==='range'?`${tgt}~${hi}`:tgt};
+      };
+      return [
+        mk('熱量 (kcal)',a.kcal,g.kcalLo,'var(--kcal)','range',g.kcalHi),
+        mk('蛋白質 (g)',a.protein,g.protein,'var(--protein)','higher'),
+        mk('脂肪 (g)',a.fat,g.fat,'var(--fat)','limit'),
+        mk('碳水 (g)',a.carb,g.carb,'var(--carb)','limit'),
+      ];
+    },
     filteredDb(){
       const k=this.dbSearch.trim();
       return k?this.foods.filter(f=>f.name.includes(k)||f.category.includes(k)):this.foods;
+    },
+    calcRows(){
+      const r=this.calcResult; if(!r) return [];
+      return [
+        {k:'kcal',label:'熱量 (kcal)',low:`${r.low.kcalLo}~${r.low.kcalHi}`,high:`${r.high.kcalLo}~${r.high.kcalHi}`},
+        {k:'p',label:'蛋白質 (g)',low:`${r.low.protein}`,high:`${r.high.protein}`},
+        {k:'f',label:'脂肪 (g)',low:`${r.low.fat}`,high:`${r.high.fat}`},
+        {k:'c',label:'碳水 (g)',low:`${r.low.carb}`,high:`${r.high.carb}`},
+      ];
     },
   },
   methods:{
@@ -446,6 +630,23 @@ createApp({
       try{
         const d=await this.api('init');
         this.foods=d.foods; this.me.profile=d.profile; this.me.mode=d.mode;
+        this.me.cycle=d.cycle; this.cycle=d.cycle; this.me.source=d.source;
+        if(d.coach){
+          this.coach={ kcalLo:d.coach.kcalLo||null, kcalHi:d.coach.kcalHi||null,
+            protein:d.coach.protein||null, fat:d.coach.fat||null, carb:d.coach.carb||null };
+        }
+        // 已有教練數值就預設停在教練 tab
+        if(d.source==='教練' || (d.coach&&d.coach.kcalLo)) this.goalTab='coach';
+        if(d.params){   // 帶出試算表存的個人參數
+          const p=d.params;
+          if(p.sex) this.calc.sex=p.sex;
+          if(p.age) this.calc.age=p.age;
+          if(p.height) this.calc.height=p.height;
+          if(p.weight) this.calc.weight=p.weight;
+          if(p.bodyfat) this.calc.bodyfat=p.bodyfat;
+          if(p.activity) this.calc.activity=p.activity;
+          if(p.goal) this.calc.goal=p.goal;
+        }
         localStorage.setItem('okr_me', JSON.stringify(this.me));
         this.fuse=new Fuse(this.foods.map(f=>({...f,
           aliases:Object.keys(ALIAS).filter(k=>ALIAS[k]===f.name)})),
@@ -459,9 +660,65 @@ createApp({
     },
     async loadDay(){
       this.loading=true;
-      try{ const d=await this.api('daily',{date:this.date}); this.entries=d.entries; }
+      try{
+        const d=await this.api('daily',{date:this.date});
+        this.entries=d.entries; this.me.profile=d.profile;
+        if(d.source) this.me.source=d.source;
+      }
       catch(e){ this.toast(e.message); }
       this.loading=false;
+    },
+    async loadPeriod(){
+      this.period=null;
+      try{
+        this.period=await this.api('period',{range:this.pRange,date:this.date});
+        this.$nextTick(()=>this.drawChart());
+      }catch(e){ this.toast(e.message); }
+    },
+    setRange(r){ this.pRange=r; this.loadPeriod(); },
+    setSeries(s){ this.pSeries=s; this.drawChart(); },
+    drawChart(){
+      if(!this.period||!this.$refs.chartCv) return;
+      const COLOR={kcal:'#1D9E75',protein:'#D85A30',fat:'#EF9F27',carb:'#378ADD'};
+      const NAME={kcal:'熱量 (kcal)',protein:'蛋白質 (g)',fat:'脂肪 (g)',carb:'碳水 (g)'};
+      const s=this.pSeries, g=this.period.target;
+      const band={kcal:[g.kcalLo,g.kcalHi],protein:[g.protein,null],
+                  fat:[0,g.fat],carb:[0,g.carb]}[s];
+      const pts=this.period.points;
+      if(this.chartObj) this.chartObj.destroy();
+      // 計算 Y 軸範圍：考量資料與目標帶，避免全 0 時出現 -1~1
+      const vals=pts.map(p=>p[s]).filter(v=>v>0);
+      const refs=[band[0]];
+      if(band[1]!=null) refs.push(band[1]);
+      const pool=vals.length?vals.concat(refs):refs;
+      let yMin=Math.min(...pool), yMax=Math.max(...pool);
+      const pad=Math.max((yMax-yMin)*0.2, yMax*0.1, 20);
+      yMin=Math.max(0, Math.floor((yMin-pad)/10)*10);
+      yMax=Math.ceil((yMax+pad)/10)*10;
+      const bandPlugin={id:'band',beforeDatasetsDraw(c){
+        if(!band) return;
+        const {ctx,chartArea:a,scales:{y}}=c;
+        const lo=band[0], hi=band[1]==null?y.max:band[1];
+        const yLo=y.getPixelForValue(hi), yHi=y.getPixelForValue(lo);
+        ctx.save();
+        ctx.fillStyle='rgba(29,158,117,0.10)';
+        ctx.fillRect(a.left,yLo,a.right-a.left,yHi-yLo);
+        ctx.strokeStyle='rgba(29,158,117,0.5)';ctx.setLineDash([5,4]);ctx.lineWidth=1;
+        [yLo,yHi].forEach(yp=>{ctx.beginPath();ctx.moveTo(a.left,yp);ctx.lineTo(a.right,yp);ctx.stroke();});
+        ctx.restore();
+      }};
+      this.chartObj=new Chart(this.$refs.chartCv,{
+        type:'line',
+        data:{labels:pts.map(p=>p.label),datasets:[{
+          label:NAME[s],data:pts.map(p=>Math.round(p[s])),
+          borderColor:COLOR[s],backgroundColor:COLOR[s],
+          tension:0.35,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,fill:false}]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false}},
+          scales:{y:{min:yMin,max:yMax,grid:{color:'rgba(0,0,0,0.05)'}},
+                  x:{grid:{display:false}}}},
+        plugins:[bandPlugin]
+      });
     },
     async loadRecent(){
       if(!this.meal) this.meal=this.guessMeal();
@@ -514,7 +771,7 @@ createApp({
       try{
         const d=await this.api('add',{date:this.date,items},true);
         this.entries=d.entries; this.cart=[];
-        this.tab='okr'; this.toast('記錄好了 🎉');
+        this.tab='okr'; this.toast('記錄好了 🎉'); if(this.tab==='period') this.loadPeriod();
         this.loadRecent();
       }catch(e){ this.toast(e.message); }
     },
@@ -540,6 +797,89 @@ createApp({
       this.promptPreview=p;
       if(navigator.clipboard) navigator.clipboard.writeText(p)
         .then(()=>this.toast('Prompt 已複製')).catch(()=>this.toast('請手動長按複製'));
+    },
+    runCalc(){
+      const c=this.calc;
+      if(!c.age||!c.height||!c.weight){ this.toast('請填年齡、身高、體重'); return; }
+      const w=c.weight;
+      let bmr, method;
+      if(c.bodyfat>0){
+        // Katch-McArdle：用除脂體重，有體脂率時更準
+        const lbm=w*(1-c.bodyfat/100);
+        bmr=370+21.6*lbm; method='Katch-McArdle（用體脂）';
+      }else{
+        // Mifflin-St Jeor
+        bmr=10*w+6.25*c.height-5*c.age+(c.sex==='M'?5:-161);
+        method='Mifflin-St Jeor';
+      }
+      bmr=Math.round(bmr);
+      const tdee=Math.round(bmr*c.activity);
+      const adj={cut:-450,maintain:0,bulk:250}[c.goal];
+      const baseKcal=tdee+adj;
+
+      // 蛋白質範圍 體重×1.6~2.2；脂肪 體重×0.8；碳水守恆反推
+      const pLo=Math.round(w*1.6), pHi=Math.round(w*2.2);
+      const protein=Math.round((pLo+pHi)/2);
+
+      function makeDay(kcalCenter, fatPerKg, carbBias){
+        const fat=Math.round(w*fatPerKg);
+        const carb=Math.round((kcalCenter-protein*4-fat*9)/4)+carbBias;
+        return { kcalLo:Math.round(kcalCenter-50), kcalHi:Math.round(kcalCenter+50),
+                 protein, fat, carb:Math.max(carb,0) };
+      }
+      // 低碳日：脂肪較高(0.9)、碳水較低；高碳日：脂肪降(0.7)、碳水+~90g、熱量+120
+      const low =makeDay(baseKcal,      0.9, 0);
+      const high=makeDay(baseKcal+120,  0.7, 0);
+
+      this.calcResult={ bmr, tdee, method,
+        low, high,
+        pRange:`${pLo}~${pHi}` };
+      this.toast('已算出建議，往下看表格');
+    },
+    async saveParams(){
+      const c=this.calc;
+      if(!c.age||!c.height||!c.weight){ this.toast('請填年齡、身高、體重'); return; }
+      this.toast('儲存中…');
+      try{
+        await this.api('saveParams',{params:{
+          sex:c.sex, age:c.age, height:c.height, weight:c.weight,
+          bodyfat:c.bodyfat||'', activity:c.activity, goal:c.goal }},true);
+        this.toast('健康資料已儲存 ✅');
+      }catch(e){ this.toast(e.message); }
+    },
+    async applyCalc(){
+      if(!this.calcResult){ this.toast('請先計算'); return; }
+      if(this.me.source==='教練'){
+        if(!confirm('你目前的目標是教練設定的，確定要改用計算機的數字嗎？')) return;
+      }
+      const goal={ low:this.calcResult.low, high:null, source:'計算機',
+        params:{ sex:this.calc.sex, age:this.calc.age, height:this.calc.height,
+          weight:this.calc.weight, bodyfat:this.calc.bodyfat||'',
+          activity:this.calc.activity, goal:this.calc.goal } };
+      this.toast('套用中…');
+      try{
+        const d=await this.api('setGoal',{goal},true);
+        this.syncMe(d);
+        this.toast('已套用計算機建議 ✅');
+      }catch(e){ this.toast(e.message); }
+    },
+    async saveCoach(apply){
+      const c=this.coach;
+      if(apply&&(!c.kcalLo||!c.kcalHi||!c.protein)){ this.toast('請至少填熱量上下限與蛋白質'); return; }
+      this.toast('儲存中…');
+      try{
+        const d=await this.api('saveCoach',{coach:c,apply:apply?1:''},true);
+        this.syncMe(d);
+        this.toast(apply?'已儲存並套用為今日目標 ✅':'已儲存教練數值');
+      }catch(e){ this.toast(e.message); }
+    },
+    syncMe(d){
+      this.me.profile=d.profile; this.me.cycle=d.cycle; this.cycle=d.cycle;
+      this.me.source=d.source;
+      if(d.coach) this.coach={ kcalLo:d.coach.kcalLo||null, kcalHi:d.coach.kcalHi||null,
+        protein:d.coach.protein||null, fat:d.coach.fat||null, carb:d.coach.carb||null };
+      localStorage.setItem('okr_me', JSON.stringify(this.me));
+      this.loadDay();
     },
     async importJson(){
       let items;
