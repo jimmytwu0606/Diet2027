@@ -70,6 +70,14 @@
   .qtyv{width:46px;text-align:center;font-weight:700;flex:none;padding:8px 2px}
   .bigbtn{font-size:17px;padding:15px;border-radius:12px}
   details{margin-top:10px}
+  .basis{border:1px solid var(--line);border-left-width:3px;border-radius:10px;padding:11px 13px;margin-top:10px;background:#fff}
+  .basis .bh{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .basis .bt{font-weight:700;font-size:14px}
+  .basis .tag{margin-left:auto;font-size:11px;padding:2px 8px;border-radius:6px}
+  .basis .bd{font-size:12.5px;color:var(--muted);line-height:1.6}
+  .tag-ok{background:#E1F5EE;color:#0F6E56}
+  .tag-mid{background:#FAEEDA;color:#854F0B}
+  .tag-gray{background:#F1EFE8;color:#555}
   summary{color:var(--green);font-size:14px;cursor:pointer;padding:6px 0}
   .ana{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;background:#FCFBF8}
   .ana .grid{display:grid;grid-template-columns:1fr 80px;gap:6px}
@@ -375,15 +383,38 @@
 
       <details class="card" style="padding:14px">
         <summary style="font-weight:700;color:var(--green)">📚 計算依據（數據來源）</summary>
-        <div class="hint" style="margin-top:10px;line-height:1.9">
-          <b>基礎代謝 BMR</b>：未填體脂用 Mifflin-St Jeor 公式（1990，臨床最常用）；填體脂改用 Katch-McArdle（除脂體重，運動族群更準）。<br>
-          <b>每日總消耗 TDEE</b>：BMR × 活動係數（久坐1.2／輕1.375／中1.55／高1.725，沿用 Harris-Benedict 標準）。<br>
-          <b>蛋白質 1.6~2.2 g/kg</b>：國際運動營養學會(ISSN)對減脂/增肌族群建議區間。<br>
-          <b>脂肪 0.8~0.9 g/kg</b>：維持荷爾蒙的常見下限。<br>
-          <b>熱量赤字 −450 kcal</b>：對應每週約減 0.5kg（通則，非個人化）。<br>
-          <b>碳循環幅度</b>：高碳日 +120 kcal、碳水 +約70g、脂肪降——碳循環無統一公式，此為參考方向，<b>務必由營養師依訓練量調整</b>。<br>
-          <b>碳水</b>：由熱量守恆反推（總熱量−蛋白×4−脂肪×9）÷4。
+
+        <div class="basis" style="border-left-color:#1D9E75">
+          <div class="bh">🔥<span class="bt">基礎代謝 BMR</span><span class="tag tag-ok">學界標準</span></div>
+          <div class="bd">未填體脂用 Mifflin-St Jeor（1990，臨床最常用）；填體脂改用 Katch-McArdle，運動族群更準。</div>
         </div>
+
+        <div class="basis" style="border-left-color:#1D9E75">
+          <div class="bh">🚶<span class="bt">每日總消耗 TDEE</span><span class="tag tag-ok">學界標準</span></div>
+          <div class="bd">BMR × 活動係數（久坐1.2／輕1.375／中1.55／高1.725），沿用 Harris-Benedict 標準。</div>
+        </div>
+
+        <div class="basis" style="border-left-color:#1D9E75">
+          <div class="bh">🥩<span class="bt">蛋白質 1.6~2.2 g/kg</span><span class="tag tag-ok">有依據</span></div>
+          <div class="bd">國際運動營養學會 ISSN 對減脂/增肌族群的建議區間。</div>
+        </div>
+
+        <div class="basis" style="border-left-color:#D9921E">
+          <div class="bh">💧<span class="bt">脂肪 0.8~0.9 g/kg</span><span class="tag tag-mid">參考值</span></div>
+          <div class="bd">維持荷爾蒙的常見下限。</div>
+        </div>
+
+        <div class="basis" style="border-left-color:#D9921E">
+          <div class="bh">📉<span class="bt">熱量赤字 −450 kcal</span><span class="tag tag-mid">通則</span></div>
+          <div class="bd">對應每週約減 0.5 kg，非個人化。每個人實際代謝不同，跑 2~3 週看趨勢微調。</div>
+        </div>
+
+        <div class="basis" style="border-left-color:#8A8678">
+          <div class="bh">🟰<span class="bt">碳水（守恆反推）</span><span class="tag tag-gray">公式</span></div>
+          <div class="bd">（總熱量 − 蛋白×4 − 脂肪×9）÷ 4 算出剩餘碳水。</div>
+        </div>
+
+        <p class="hint" style="margin-top:12px">綠＝有學術根據可信賴；橘＝合理但非個人化的估計，有彈性、以教練/營養師為準。</p>
       </details>
 
       <div class="card" v-if="me.mode==='完整'">
