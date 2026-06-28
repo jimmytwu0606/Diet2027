@@ -7,6 +7,7 @@
 <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{
     --ink:#22251F; --paper:#FFFFFF; --line:#E5E2DA; --muted:#8A8678;
@@ -275,6 +276,53 @@
       </div>
     </div>
 
+    <!-- ════ 體測 ════ -->
+    <div v-show="tab==='body'">
+      <div class="card">
+        <h2>⚖️ 上傳 Tanita 報告</h2>
+        <p class="hint" style="margin-bottom:10px">
+          選擇 Tanita PDF，自動讀取量測日期、體重、體脂率、肌肉量並存入趨勢。檔案只在你裝置解析，不會上傳。
+        </p>
+        <input type="file" accept="application/pdf" @change="onPdf" style="margin-bottom:8px">
+        <div v-if="pdfMsg" class="hint" :class="pdfErr?'warn':'ok'">{{pdfMsg}}</div>
+        <div v-if="pdfParsed" style="margin-top:10px;padding:12px;background:var(--green-lt);border-radius:10px">
+          <div style="font-weight:700;margin-bottom:6px">📋 解析結果（{{pdfParsed.date}}）</div>
+          <div style="font-size:14px;line-height:1.8">
+            體重 <b>{{pdfParsed.weight}}</b> kg｜體脂率 <b>{{pdfParsed.fat}}</b> %｜肌肉量 <b>{{pdfParsed.muscle}}</b> kg
+          </div>
+          <div class="hint" v-if="pdfHistory.length" style="margin-top:4px">＋報告內含 {{pdfHistory.length}} 筆歷史紀錄</div>
+          <button style="margin-top:10px" @click="saveBody">✅ 存入體測趨勢</button>
+        </div>
+      </div>
+
+      <div class="card" v-if="bodyRows.length">
+        <h2>📊 趨勢曲線</h2>
+        <div class="chips" style="margin-bottom:10px">
+          <button class="chip" :class="{on:bodySeries==='weight'}" @click="setBodySeries('weight')">體重</button>
+          <button class="chip" :class="{on:bodySeries==='fat'}" @click="setBodySeries('fat')">體脂率</button>
+          <button class="chip" :class="{on:bodySeries==='muscle'}" @click="setBodySeries('muscle')">肌肉量</button>
+        </div>
+        <div style="position:relative;height:260px"><canvas ref="bodyCv"></canvas></div>
+        <div class="hint" style="text-align:center;margin-top:6px">{{bodyTrendText}}</div>
+      </div>
+
+      <div class="card" v-if="bodyRows.length">
+        <h2>所有紀錄（{{bodyRows.length}} 筆）</h2>
+        <div class="hint" style="margin-bottom:6px">不對的資料可刪除（例如剛吃飽量的）</div>
+        <div class="entry" v-for="r in bodyRowsDesc" :key="r.date">
+          <div>
+            <b>{{r.date}}</b>
+            <div class="macro">體重 {{r.weight}}｜體脂 {{r.fat}}%｜肌肉 {{r.muscle}}</div>
+          </div>
+          <button class="del" @click="delBody(r.date)">✕</button>
+        </div>
+      </div>
+
+      <div class="card" v-if="!bodyRows.length && !pdfParsed">
+        <p class="hint">還沒有體測資料。上傳第一份 Tanita 報告開始追蹤——報告自帶的歷史會一起匯入，馬上就有趨勢線。</p>
+      </div>
+    </div>
+
     <!-- ════ 食物庫（完整模式） ════ -->
     <div v-show="tab==='db'" v-if="me.mode==='完整'">
       <div class="card">
@@ -452,6 +500,7 @@
     <button :class="{on:tab==='add'}" @click="tab='add';loadRecent()"><span>➕</span>記錄</button>
     <button :class="{on:tab==='okr'}" @click="tab='okr'"><span>📊</span>今日</button>
     <button :class="{on:tab==='period'}" @click="tab='period';loadPeriod()"><span>📈</span>週期</button>
+    <button :class="{on:tab==='body'}" @click="tab='body';loadBody()"><span>⚖️</span>體測</button>
     <button v-if="me.mode==='完整'" :class="{on:tab==='db'}" @click="tab='db'"><span>🗂</span>食物庫</button>
   </nav>
   </template>
@@ -535,6 +584,8 @@ createApp({
       period:null, pRange:'day', pSeries:'kcal', chartObj:null,
       meal:'', q:'', cart:[], anaText:'',
       myCombos:[], publicCombos:[],
+      bodyRows:[], bodySeries:'weight', bodyChart:null,
+      pdfParsed:null, pdfHistory:[], pdfMsg:'', pdfErr:false,
       dbSearch:'', jsonText:'', promptFood:'', promptPreview:'',
       nf:{name:'',unit:'1份',kcal:null,protein:null,fat:null,carb:null},
       calc:{sex:'M',age:null,height:null,weight:null,bodyfat:null,activity:1.375,goal:'cut'},
@@ -625,6 +676,15 @@ createApp({
     filteredDb(){
       const k=this.dbSearch.trim();
       return k?this.foods.filter(f=>f.name.includes(k)||f.category.includes(k)):this.foods;
+    },
+    bodyRowsDesc(){ return [...this.bodyRows].reverse(); },
+    bodyTrendText(){
+      if(this.bodyRows.length<2) return '至少兩筆才看得出趨勢';
+      const s=this.bodySeries, NAME={weight:'體重',fat:'體脂率',muscle:'肌肉量'};
+      const first=this.bodyRows[0][s], last=this.bodyRows[this.bodyRows.length-1][s];
+      const diff=(last-first).toFixed(1), unit=s==='fat'?'%':'kg';
+      const dir=diff>0?'增加':'減少';
+      return `${NAME[s]}從 ${first} 變化到 ${last} ${unit}（共${dir} ${Math.abs(diff)} ${unit}）`;
     },
     calcRows(){
       const r=this.calcResult; if(!r) return [];
@@ -782,6 +842,104 @@ createApp({
         const d=await this.api('combos');
         this.publicCombos=d.public; this.myCombos=d.mine;
       }catch(e){}
+    },
+    async loadBody(){
+      try{ const d=await this.api('bodyList'); this.bodyRows=d.rows;
+        this.$nextTick(()=>this.drawBody()); }catch(e){ this.toast(e.message); }
+    },
+    async onPdf(ev){
+      const file=ev.target.files[0];
+      if(!file) return;
+      this.pdfMsg='解析中…'; this.pdfErr=false; this.pdfParsed=null; this.pdfHistory=[];
+      try{
+        const buf=await file.arrayBuffer();
+        pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+        let items=[];
+        for(let p=1;p<=pdf.numPages;p++){
+          const page=await pdf.getPage(p);
+          const tc=await page.getTextContent();
+          tc.items.forEach(it=>items.push(it.str.trim()));
+        }
+        items=items.filter(s=>s!=='');
+        this.parseTanita(items);
+      }catch(e){
+        this.pdfMsg='解析失敗：'+e.message+'（請確認是 Tanita 文字版 PDF）'; this.pdfErr=true;
+      }
+    },
+    parseTanita(items){
+      const txt=items.join(' ');
+      // 1. 量測日期：找 yyyy/M/d
+      let date=null;
+      const dm=txt.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+      if(dm) date=`${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`;
+      // 2. 歷史序列：報告右下「日期 體重 肌肉 體脂」或「目前 58.8 38.6 30.2」
+      //    抓所有「(目前|首次|yyyy/M/d) 數 數 數」三連數
+      const history=[];
+      const reHist=/(目前|首次|\d{4}\/\d{1,2}\/\d{1,2})\s+(\d{2,3}\.\d)\s+(\d{2,3}\.\d)\s+(\d{2}\.\d)/g;
+      let m;
+      while((m=reHist.exec(txt))){
+        let d=m[1];
+        if(d==='目前') d=date;
+        else if(d==='首次') d=null;  // 首次無確切日期，存相對標記
+        else { const p=d.split('/'); d=`${p[0]}-${String(p[1]).padStart(2,'0')}-${String(p[2]).padStart(2,'0')}`; }
+        history.push({ date:d, weight:+m[2], muscle:+m[3], fat:+m[4] });
+      }
+      // 3. 本次主數據：用「目前」那筆，或從詳細結果區抓
+      let cur=history.find(h=>h.date===date);
+      if(!cur && history.length) cur=history[0];
+      // 若歷史沒抓到，退而求其次從版面抓（體重 體脂 肌肉的典型值）
+      let weight=cur?cur.weight:null, fat=cur?cur.fat:null, muscle=cur?cur.muscle:null;
+      if(!date){ this.pdfMsg='找不到量測日期，請確認報告格式'; this.pdfErr=true; return; }
+      if(weight==null||fat==null||muscle==null){
+        this.pdfMsg='找到日期但體重/體脂/肌肉抓取不完整，請確認是 MC-780 報告'; this.pdfErr=true; return;
+      }
+      // 首次那筆給個推估日期（最早，但無確切日）→ 用標記
+      const hist=history.map(h=>({...h, date:h.date||'首次'}));
+      this.pdfParsed={ date, weight, fat, muscle };
+      this.pdfHistory=hist;
+      this.pdfMsg='✅ 解析成功'; this.pdfErr=false;
+    },
+    async saveBody(){
+      if(!this.pdfParsed) return;
+      // 組合本次＋歷史，「首次」那筆無確切日期則跳過（避免假日期）
+      const rows=this.pdfHistory.filter(h=>h.date&&h.date!=='首次')
+        .map(h=>({date:h.date,weight:h.weight,fat:h.fat,muscle:h.muscle}));
+      // 確保本次也在
+      if(!rows.some(r=>r.date===this.pdfParsed.date)) rows.push(this.pdfParsed);
+      this.toast('存入中…');
+      try{
+        const d=await this.api('bodyAdd',{rows},true);
+        this.bodyRows=d.list; this.pdfParsed=null; this.pdfHistory=[]; this.pdfMsg='';
+        this.toast(`已存入 ${d.added} 筆新紀錄`);
+        this.$nextTick(()=>this.drawBody());
+      }catch(e){ this.toast(e.message); }
+    },
+    async delBody(date){
+      if(!confirm(`確定刪除 ${date} 這筆體測？`)) return;
+      try{
+        const d=await this.api('bodyDel',{date},true);
+        this.bodyRows=d.list; this.toast('已刪除');
+        this.$nextTick(()=>this.drawBody());
+      }catch(e){ this.toast(e.message); }
+    },
+    setBodySeries(s){ this.bodySeries=s; this.drawBody(); },
+    drawBody(){
+      if(!this.bodyRows.length||!this.$refs.bodyCv) return;
+      const COLOR={weight:'#2D6A9F',fat:'#B0413E',muscle:'#1F7A3D'};
+      const NAME={weight:'體重 (kg)',fat:'體脂率 (%)',muscle:'肌肉量 (kg)'};
+      const s=this.bodySeries;
+      if(this.bodyChart) this.bodyChart.destroy();
+      this.bodyChart=new Chart(this.$refs.bodyCv,{
+        type:'line',
+        data:{labels:this.bodyRows.map(r=>r.date.slice(5)),  // MM-DD
+          datasets:[{label:NAME[s],data:this.bodyRows.map(r=>r[s]),
+            borderColor:COLOR[s],backgroundColor:COLOR[s],
+            tension:0.3,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,fill:false}]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false}},
+          scales:{y:{beginAtZero:false,grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}}}
+      });
     },
     comboText(c){ return c.items.map(it=>it.name+'×'+it.qty).join('、'); },
     hasCombo(name){ return this.myCombos.some(c=>c.name===name); },
