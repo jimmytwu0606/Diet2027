@@ -7,7 +7,7 @@
 <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
   :root{
     --ink:#22251F; --paper:#FFFFFF; --line:#E5E2DA; --muted:#8A8678;
@@ -288,22 +288,69 @@
         <div v-if="pdfParsed" style="margin-top:10px;padding:12px;background:var(--green-lt);border-radius:10px">
           <div style="font-weight:700;margin-bottom:6px">📋 解析結果（{{pdfParsed.date}}）</div>
           <div style="font-size:14px;line-height:1.8">
-            體重 <b>{{pdfParsed.weight}}</b> kg｜體脂率 <b>{{pdfParsed.fat}}</b> %｜肌肉量 <b>{{pdfParsed.muscle}}</b> kg
+            體重 <b>{{pdfParsed.weight}}</b>｜體脂率 <b>{{pdfParsed.fat}}</b>%｜肌肉量 <b>{{pdfParsed.muscle}}</b>｜
+            BMI <b>{{pdfParsed.bmi}}</b>｜基礎代謝 <b>{{pdfParsed.bmr}}</b>｜內臟脂肪 <b>{{pdfParsed.visceral}}</b>
           </div>
-          <div class="hint" v-if="pdfHistory.length" style="margin-top:4px">＋報告內含 {{pdfHistory.length}} 筆歷史紀錄</div>
+          <div class="hint" style="margin-top:4px">已解析 28 項指標{{pdfHistory.length?'，＋報告內含 '+pdfHistory.length+' 筆體重/體脂/肌肉歷史':''}}</div>
           <button style="margin-top:10px" @click="saveBody">✅ 存入體測趨勢</button>
         </div>
       </div>
 
       <div class="card" v-if="bodyRows.length">
         <h2>📊 趨勢曲線</h2>
-        <div class="chips" style="margin-bottom:10px">
-          <button class="chip" :class="{on:bodySeries==='weight'}" @click="setBodySeries('weight')">體重</button>
-          <button class="chip" :class="{on:bodySeries==='fat'}" @click="setBodySeries('fat')">體脂率</button>
-          <button class="chip" :class="{on:bodySeries==='muscle'}" @click="setBodySeries('muscle')">肌肉量</button>
-        </div>
+        <select v-model="bodySeries" @change="drawBody" style="margin-bottom:10px">
+          <optgroup label="主要指標（報告含歷史）">
+            <option value="weight">體重 (kg)</option>
+            <option value="fat">體脂率 (%)</option>
+            <option value="muscle">肌肉量 (kg)</option>
+          </optgroup>
+          <optgroup label="身體組成">
+            <option value="fatMass">體脂肪量 (kg)</option>
+            <option value="ffm">除脂肪量 (kg)</option>
+            <option value="bmi">BMI</option>
+            <option value="bodyAge">體內年齡</option>
+            <option value="protein">蛋白質 (kg)</option>
+            <option value="bone">骨量 (kg)</option>
+          </optgroup>
+          <optgroup label="代謝/體液">
+            <option value="bmr">基礎代謝 (kcal)</option>
+            <option value="visceral">內臟脂肪等級</option>
+            <option value="waterKg">身體水分量 (kg)</option>
+            <option value="waterPct">身體水分比例 (%)</option>
+            <option value="ecwPct">細胞外液比例 (%)</option>
+            <option value="ecw">細胞外液 (kg)</option>
+            <option value="icw">細胞內液 (kg)</option>
+          </optgroup>
+          <optgroup label="部位肌肉量">
+            <option value="mTrunk">軀幹肌肉 (kg)</option>
+            <option value="mRArm">右手肌肉 (kg)</option>
+            <option value="mLArm">左手肌肉 (kg)</option>
+            <option value="mRLeg">右腳肌肉 (kg)</option>
+            <option value="mLLeg">左腳肌肉 (kg)</option>
+          </optgroup>
+          <optgroup label="部位體脂率">
+            <option value="fTrunk">軀幹體脂 (%)</option>
+            <option value="fRArm">右手體脂 (%)</option>
+            <option value="fLArm">左手體脂 (%)</option>
+            <option value="fRLeg">右腳體脂 (%)</option>
+            <option value="fLLeg">左腳體脂 (%)</option>
+          </optgroup>
+        </select>
         <div style="position:relative;height:260px"><canvas ref="bodyCv"></canvas></div>
         <div class="hint" style="text-align:center;margin-top:6px">{{bodyTrendText}}</div>
+      </div>
+
+      <div class="card" v-if="hasParts">
+        <h2>🕸 五部位平衡（肌肉量 kg）</h2>
+        <div class="hint" style="margin-bottom:8px">{{partsSubtitle('m')}}</div>
+        <div style="position:relative;height:280px"><canvas ref="radarM"></canvas></div>
+      </div>
+
+      <div class="card" v-if="hasParts">
+        <h2>🕸 五部位平衡（體脂率 %）</h2>
+        <div class="hint" style="margin-bottom:8px">{{partsSubtitle('f')}}</div>
+        <div style="position:relative;height:280px"><canvas ref="radarF"></canvas></div>
+        <p class="hint" style="margin-top:8px">五個角＝身體五部位，越對稱代表左右越平衡。實線＝最新，虛線＝前一次（量兩次以上才出現）。</p>
       </div>
 
       <div class="card" v-if="bodyRows.length">
@@ -316,6 +363,7 @@
           </div>
           <button class="del" @click="delBody(r.date)">✕</button>
         </div>
+        <button class="ghost" style="margin-top:12px;color:var(--warn);border-color:var(--warn)" @click="clearBody">🗑 清空全部重來</button>
       </div>
 
       <div class="card" v-if="!bodyRows.length && !pdfParsed">
@@ -551,6 +599,16 @@ function parseToken(t){
   const name=t.replace(/的|了|吃|喝|還有|大約|左右/g,'').replace(/\s+/g,'').trim();
   return name?{name,grams,ml,count}:null;
 }
+/** 找連續五個「數字kg」當五部位肌肉量（軀幹值最大，作起點驗證） */
+function findFivePart_(txt, re){
+  const all=[...txt.matchAll(re)].map(x=>+x[1]);
+  // 五部位肌肉特徵：軀幹>10、四肢<10，找「一大四小」連續五個
+  for(let i=0;i<=all.length-5;i++){
+    const g=all.slice(i,i+5);
+    if(g[0]>10 && g[1]<10 && g[2]<10 && g[3]<15 && g[4]<15) return g;
+  }
+  return null;
+}
 function matchFood(p, foods, fuse){
   let food=null;
   const key=ALIAS[p.name]||p.name;
@@ -585,6 +643,7 @@ createApp({
       meal:'', q:'', cart:[], anaText:'',
       myCombos:[], publicCombos:[],
       bodyRows:[], bodySeries:'weight', bodyChart:null,
+      radarMChart:null, radarFChart:null,
       pdfParsed:null, pdfHistory:[], pdfMsg:'', pdfErr:false,
       dbSearch:'', jsonText:'', promptFood:'', promptPreview:'',
       nf:{name:'',unit:'1份',kcal:null,protein:null,fat:null,carb:null},
@@ -678,13 +737,20 @@ createApp({
       return k?this.foods.filter(f=>f.name.includes(k)||f.category.includes(k)):this.foods;
     },
     bodyRowsDesc(){ return [...this.bodyRows].reverse(); },
+    hasParts(){
+      // 有任一筆含五部位肌肉資料才顯示雷達圖
+      return this.bodyRows.some(r=>r.mTrunk!=null);
+    },
     bodyTrendText(){
-      if(this.bodyRows.length<2) return '至少兩筆才看得出趨勢';
-      const s=this.bodySeries, NAME={weight:'體重',fat:'體脂率',muscle:'肌肉量'};
-      const first=this.bodyRows[0][s], last=this.bodyRows[this.bodyRows.length-1][s];
-      const diff=(last-first).toFixed(1), unit=s==='fat'?'%':'kg';
+      const s=this.bodySeries;
+      const pts=this.bodyRows.filter(r=>r[s]!=null);
+      const name=this.bodyMeta(s).name;
+      if(pts.length===0) return `${name}：尚無資料`;
+      if(pts.length===1) return `${name}：目前 ${pts[0][s]}（共 1 筆，再量幾次就有趨勢線）`;
+      const first=pts[0][s], last=pts[pts.length-1][s];
+      const diff=(last-first).toFixed(1);
       const dir=diff>0?'增加':'減少';
-      return `${NAME[s]}從 ${first} 變化到 ${last} ${unit}（共${dir} ${Math.abs(diff)} ${unit}）`;
+      return `${name}：從 ${first} 到 ${last}（共${dir} ${Math.abs(diff)}）`;
     },
     calcRows(){
       const r=this.calcResult; if(!r) return [];
@@ -853,8 +919,9 @@ createApp({
       this.pdfMsg='解析中…'; this.pdfErr=false; this.pdfParsed=null; this.pdfHistory=[];
       try{
         const buf=await file.arrayBuffer();
-        pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+        // 強制主執行緒解析（disableWorker），讓 file:// 本機開啟也能用
+        try{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js'; }catch(e){}
+        const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf), disableWorker:true, isEvalSupported:false, useWorkerFetch:false}).promise;
         let items=[];
         for(let p=1;p<=pdf.numPages;p++){
           const page=await pdf.getPage(p);
@@ -869,44 +936,77 @@ createApp({
     },
     parseTanita(items){
       const txt=items.join(' ');
-      // 1. 量測日期：找 yyyy/M/d
+      const toks=txt.split(/\s+/);
+      // 1. 量測日期
       let date=null;
       const dm=txt.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
       if(dm) date=`${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`;
-      // 2. 歷史序列：報告右下「日期 體重 肌肉 體脂」或「目前 58.8 38.6 30.2」
-      //    抓所有「(目前|首次|yyyy/M/d) 數 數 數」三連數
+      if(!date){ this.pdfMsg='找不到量測日期，請確認報告格式'; this.pdfErr=true; return; }
+
+      // 2. 歷史序列（體重/肌肉/體脂 13 筆）
       const history=[];
       const reHist=/(目前|首次|\d{4}\/\d{1,2}\/\d{1,2})\s+(\d{2,3}\.\d)\s+(\d{2,3}\.\d)\s+(\d{2}\.\d)/g;
       let m;
       while((m=reHist.exec(txt))){
         let d=m[1];
         if(d==='目前') d=date;
-        else if(d==='首次') d=null;  // 首次無確切日期，存相對標記
+        else if(d==='首次') d='首次';
         else { const p=d.split('/'); d=`${p[0]}-${String(p[1]).padStart(2,'0')}-${String(p[2]).padStart(2,'0')}`; }
         history.push({ date:d, weight:+m[2], muscle:+m[3], fat:+m[4] });
       }
-      // 3. 本次主數據：用「目前」那筆，或從詳細結果區抓
-      let cur=history.find(h=>h.date===date);
-      if(!cur && history.length) cur=history[0];
-      // 若歷史沒抓到，退而求其次從版面抓（體重 體脂 肌肉的典型值）
-      let weight=cur?cur.weight:null, fat=cur?cur.fat:null, muscle=cur?cur.muscle:null;
-      if(!date){ this.pdfMsg='找不到量測日期，請確認報告格式'; this.pdfErr=true; return; }
-      if(weight==null||fat==null||muscle==null){
-        this.pdfMsg='找到日期但體重/體脂/肌肉抓取不完整，請確認是 MC-780 報告'; this.pdfErr=true; return;
+
+      // 3. 本次 28 指標：以 MC-780 為錨點抓主測量區
+      const mc=toks.indexOf('MC-780');
+      const cur={ date };
+      if(mc>=0){
+        const n=i=>{ const v=parseFloat(toks[mc+i]); return isNaN(v)?null:v; };
+        cur.weight=n(1); cur.fat=n(2); cur.fatMass=n(3); cur.ffm=n(4);
+        cur.muscle=n(5); cur.bmi=n(6); cur.bodyAge=n(7);
+        // 身體組成分解（上排 體脂肪量/骨量/蛋白質/細胞外液，下排 體重/除脂/肌肉/體水/細胞內液）
+        // 緊接在標準範圍 5 組區間之後：找 mc+8 起跳過區間(含-)再抓
+        let j=mc+8, skip=0;
+        while(j<toks.length && skip<5){ if(/^\d/.test(toks[j])&&toks[j].includes('-')) skip++; j++; }
+        // j 現在指向 17.8(體脂肪量) 開始的組成分解區
+        const g=k=>{ const v=parseFloat(toks[j+k]); return isNaN(v)?null:v; };
+        cur.bone=g(1); cur.protein=g(2);            // 骨量 2.4、蛋白質 10.0
+        // 代謝區：基礎代謝kJ kcal 內臟脂肪 水分kg 水分% 細胞外液% 細胞外液kg 細胞內液kg
+        for(let k=j; k<toks.length-7; k++){
+          if(/^\d{4}$/.test(toks[k]) && parseFloat(toks[k])>2000){
+            cur.bmr=parseFloat(toks[k+1]);           // kcal 1202
+            cur.visceral=parseFloat(toks[k+2]);      // 內臟脂肪 5
+            cur.waterKg=parseFloat(toks[k+3]);       // 水分kg 28.6
+            cur.waterPct=parseFloat(toks[k+4]);      // 水分% 48.6
+            cur.ecwPct=parseFloat(toks[k+5]);        // 細胞外液% 47.9
+            cur.ecw=parseFloat(toks[k+6]);           // 細胞外液kg 13.7
+            cur.icw=parseFloat(toks[k+7]);           // 細胞內液kg 14.9
+            break;
+          }
+        }
       }
-      // 首次那筆給個推估日期（最早，但無確切日）→ 用標記
-      const hist=history.map(h=>({...h, date:h.date||'首次'}));
-      this.pdfParsed={ date, weight, fat, muscle };
-      this.pdfHistory=hist;
+
+      // 4. 五部位（在電阻抗區後段，用 kg / %/kg 特徵抓）
+      const mus=[...txt.matchAll(/(\d+\.\d+)kg/g)].map(x=>+x[1]);
+      // 五部位肌肉量通常是「20.0kg 1.7kg 1.7kg 7.5kg 7.7kg」連續五個
+      const mIdx=findFivePart_(txt,/(\d+\.\d+)kg/g);
+      if(mIdx){ [cur.mTrunk,cur.mRArm,cur.mLArm,cur.mRLeg,cur.mLLeg]=mIdx; }
+      const fIdx=[...txt.matchAll(/(\d+\.\d+)%\s*\/\s*[\d.]+kg/g)].map(x=>+x[1]).slice(0,5);
+      if(fIdx.length===5){ [cur.fTrunk,cur.fRArm,cur.fLArm,cur.fRLeg,cur.fLLeg]=fIdx; }
+
+      if(cur.weight==null||cur.fat==null||cur.muscle==null){
+        this.pdfMsg='主數據抓取不完整，請確認是 MC-780 報告'; this.pdfErr=true; return;
+      }
+      this.pdfParsed=cur;
+      this.pdfHistory=history;
       this.pdfMsg='✅ 解析成功'; this.pdfErr=false;
     },
     async saveBody(){
       if(!this.pdfParsed) return;
-      // 組合本次＋歷史，「首次」那筆無確切日期則跳過（避免假日期）
-      const rows=this.pdfHistory.filter(h=>h.date&&h.date!=='首次')
+      const curDate=this.pdfParsed.date;
+      // 歷史筆（只有體重/體脂/肌肉），排除無確切日期的「首次」與本次（本次用完整那筆）
+      const rows=this.pdfHistory
+        .filter(h=>h.date&&h.date!=='首次'&&h.date!==curDate)
         .map(h=>({date:h.date,weight:h.weight,fat:h.fat,muscle:h.muscle}));
-      // 確保本次也在
-      if(!rows.some(r=>r.date===this.pdfParsed.date)) rows.push(this.pdfParsed);
+      rows.push(this.pdfParsed);   // 本次：完整 28 欄
       this.toast('存入中…');
       try{
         const d=await this.api('bodyAdd',{rows},true);
@@ -923,23 +1023,92 @@ createApp({
         this.$nextTick(()=>this.drawBody());
       }catch(e){ this.toast(e.message); }
     },
+    async clearBody(){
+      if(!confirm('確定清空你全部的體測紀錄？清空後重新上傳報告即可。')) return;
+      try{
+        const d=await this.api('bodyClear',{},true);
+        this.bodyRows=d.list; this.toast('已清空');
+        if(this.bodyChart) this.bodyChart.destroy();
+        if(this.radarMChart) this.radarMChart.destroy();
+        if(this.radarFChart) this.radarFChart.destroy();
+      }catch(e){ this.toast(e.message); }
+    },
     setBodySeries(s){ this.bodySeries=s; this.drawBody(); },
     drawBody(){
       if(!this.bodyRows.length||!this.$refs.bodyCv) return;
-      const COLOR={weight:'#2D6A9F',fat:'#B0413E',muscle:'#1F7A3D'};
-      const NAME={weight:'體重 (kg)',fat:'體脂率 (%)',muscle:'肌肉量 (kg)'};
+      const META=this.bodyMeta(this.bodySeries);
       const s=this.bodySeries;
+      // 只取有該指標值的筆（部位/代謝指標舊資料可能沒有）
+      const pts=this.bodyRows.filter(r=>r[s]!=null);
       if(this.bodyChart) this.bodyChart.destroy();
       this.bodyChart=new Chart(this.$refs.bodyCv,{
         type:'line',
-        data:{labels:this.bodyRows.map(r=>r.date.slice(5)),  // MM-DD
-          datasets:[{label:NAME[s],data:this.bodyRows.map(r=>r[s]),
-            borderColor:COLOR[s],backgroundColor:COLOR[s],
+        data:{labels:pts.map(r=>r.date.slice(5)),
+          datasets:[{label:META.name,data:pts.map(r=>r[s]),
+            borderColor:META.color,backgroundColor:META.color,
             tension:0.3,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,fill:false}]},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{display:false}},
           scales:{y:{beginAtZero:false,grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}}}
       });
+      this.drawRadar();
+    },
+    partsRows(){
+      // 有五部位資料的筆，依日期，取最新兩筆
+      const rows=this.bodyRows.filter(r=>r.mTrunk!=null);
+      return rows.slice(-2);  // [前一次, 最新] 或 [最新]
+    },
+    partsSubtitle(type){
+      const rows=this.partsRows(); if(!rows.length) return '';
+      const last=rows[rows.length-1];
+      if(type==='m') return `軀幹 ${last.mTrunk}｜右手 ${last.mRArm}｜左手 ${last.mLArm}｜右腳 ${last.mRLeg}｜左腳 ${last.mLLeg}（${last.date}）`;
+      return `軀幹 ${last.fTrunk}｜右手 ${last.fRArm}｜左手 ${last.fLArm}｜右腳 ${last.fRLeg}｜左腳 ${last.fLLeg}（${last.date}）`;
+    },
+    drawRadar(){
+      const rows=this.partsRows();
+      if(!rows.length) return;
+      const LABELS=['軀幹','右手','左手','右腳','左腳'];
+      const last=rows[rows.length-1];
+      const prev=rows.length>1?rows[0]:null;
+      const mk=(ref,chartKey,keys,colNow,colPrev)=>{
+        if(!this.$refs[ref]) return;
+        if(this[chartKey]) this[chartKey].destroy();
+        const dsNow=keys.map(k=>last[k]);
+        const datasets=[];
+        if(prev){
+          datasets.push({label:'前一次',data:keys.map(k=>prev[k]),
+            borderColor:colPrev,backgroundColor:colPrev+'22',borderWidth:1.5,borderDash:[4,3],pointRadius:3});
+        }
+        datasets.push({label:prev?'最新':last.date.slice(5),data:dsNow,
+          borderColor:colNow,backgroundColor:colNow+'33',borderWidth:2.5,pointRadius:4});
+        this[chartKey]=new Chart(this.$refs[ref],{
+          type:'radar',
+          data:{labels:LABELS,datasets},
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{position:'bottom',labels:{boxWidth:14,font:{size:12}}}},
+            scales:{r:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.08)'},
+              angleLines:{color:'rgba(0,0,0,0.08)'},pointLabels:{font:{size:13}},
+              ticks:{backdropColor:'transparent',font:{size:10}}}}}
+        });
+      };
+      mk('radarM','radarMChart',['mTrunk','mRArm','mLArm','mRLeg','mLLeg'],'#1F7A3D','#7BB58E');
+      mk('radarF','radarFChart',['fTrunk','fRArm','fLArm','fRLeg','fLLeg'],'#B0413E','#D49490');
+    },
+    bodyMeta(s){
+      const M={
+        weight:['體重 (kg)','#2D6A9F'], fat:['體脂率 (%)','#B0413E'], muscle:['肌肉量 (kg)','#1F7A3D'],
+        fatMass:['體脂肪量 (kg)','#C0392B'], ffm:['除脂肪量 (kg)','#2E7D32'], bmi:['BMI','#6A4FB0'],
+        bodyAge:['體內年齡','#8A6D3B'], protein:['蛋白質 (kg)','#D9921E'], bone:['骨量 (kg)','#7B6F63'],
+        bmr:['基礎代謝 (kcal)','#1F4E37'], visceral:['內臟脂肪等級','#C0392B'],
+        waterKg:['身體水分量 (kg)','#2D6A9F'], waterPct:['身體水分比例 (%)','#3789B5'],
+        ecwPct:['細胞外液比例 (%)','#5A8FB0'], ecw:['細胞外液 (kg)','#4A7B9F'], icw:['細胞內液 (kg)','#6A5FB0'],
+        mTrunk:['軀幹肌肉 (kg)','#1F7A3D'], mRArm:['右手肌肉 (kg)','#2E8B4D'], mLArm:['左手肌肉 (kg)','#3E9B5D'],
+        mRLeg:['右腳肌肉 (kg)','#1E6A3D'], mLLeg:['左腳肌肉 (kg)','#2E7A4D'],
+        fTrunk:['軀幹體脂 (%)','#B0413E'], fRArm:['右手體脂 (%)','#C0514E'], fLArm:['左手體脂 (%)','#D0615E'],
+        fRLeg:['右腳體脂 (%)','#A0312E'], fLLeg:['左腳體脂 (%)','#B0413E'],
+      };
+      const m=M[s]||['指標','#1F4E37'];
+      return {name:m[0],color:m[1]};
     },
     comboText(c){ return c.items.map(it=>it.name+'×'+it.qty).join('、'); },
     hasCombo(name){ return this.myCombos.some(c=>c.name===name); },
